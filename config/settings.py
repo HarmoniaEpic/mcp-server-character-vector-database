@@ -51,7 +51,7 @@ MCP_SERVER_VERSION = os.getenv("MCP_SERVER_VERSION", "3.1.4-complete-fixed")
 
 # Available documents configuration
 AVAILABLE_DOCUMENTS = {
-    "engine_system": os.getenv("ENGINE_SYSTEM_DOC", "unified-inner-engine-v3.1.txt"),
+    "engine_system": os.getenv("ENGINE_SYSTEM_DOC", "unified-inner-engine-v3-2.txt"),
     "manual": os.getenv("MANUAL_DOC", "unified-engine-mcp-manual.md")
 }
 
