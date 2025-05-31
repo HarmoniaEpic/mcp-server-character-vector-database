@@ -33,6 +33,7 @@ MCP Server Character Vector Databaseは、エージェンティックなAIキャ
 
 - Python 3.8以上
 - pip または conda
+- すごい
 
 ### 基本インストール
 
