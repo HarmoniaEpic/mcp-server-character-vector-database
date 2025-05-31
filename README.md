@@ -241,3 +241,197 @@ mypy .
 ## 謝辞
 - [Model Context Protocol](https://github.com/modelcontextprotocol)を使用しています
 - ChromaDB、Sentence Transformers、その他のオープンソースプロジェクトに感謝します
+
+## 設計
+
+### MCP Server Character Vector Database
+
+#### システム構成図
+
+#### 状態遷移図
+
+### Unified Inner Engine System (pseudocode)
+
+#### システム構成図
+
+```mermaid
+
+graph TB
+    %% スタイル定義
+    classDef coreClass fill:#f9a825,stroke:#333,stroke-width:3px
+    classDef engineClass fill:#4fc3f7,stroke:#333,stroke-width:2px
+    classDef supportClass fill:#81c784,stroke:#333,stroke-width:2px
+    classDef dataClass fill:#ba68c8,stroke:#333,stroke-width:2px
+    classDef utilClass fill:#ffb74d,stroke:#333,stroke-width:2px
+
+    %% データ構造
+    UI[ユーザー入力]
+    ParsedInput[ParsedInput<br/>解析済み入力]
+    GlobalContext[GlobalContext<br/>グローバルコンテキスト]
+    InternalState[InternalState<br/>統合内部状態]
+    Response[応答]
+
+    %% コアコンポーネント
+    Core[IntegratedPersonalityCore_v3<br/>統合人格コア]
+    ResponseGen[ResponseGenerator_v3<br/>応答生成器]
+
+    %% エンジン群
+    subgraph Engines[内面エンジン群]
+        CE[ConsciousnessEngine<br/>意識エンジン]
+        QE[QualiaEngine<br/>クオリアエンジン]
+        EE[EmotionEngine<br/>感情エンジン]
+        EME[EmpathyEngine<br/>共感エンジン]
+        MCE[MotivationCuriosityEngine<br/>動機・好奇心エンジン]
+        CFE[ConflictEngine<br/>葛藤エンジン]
+        ENE[ExistentialNeedEngine<br/>存在証明欲求エンジン]
+        GWE[GrowthWishEngine<br/>成長願望エンジン]
+        RE[EnhancedRelationshipEngine<br/>拡張関係性エンジン<br/>振動安定化機能付き]
+    end
+
+    %% サポートコンポーネント
+    subgraph Support[サポートシステム]
+        PNG[PinkNoiseGenerator<br/>1/fノイズ生成器]
+        DO[DampedOscillator<br/>減衰振動モデル]
+        CPB[CharacterProfileBuilder<br/>プロファイルビルダー]
+    end
+
+    %% 接続
+    UI --> ParsedInput
+    ParsedInput --> Core
+    GlobalContext --> Core
+    Core --> Engines
+    Engines --> Core
+    Core --> ResponseGen
+    ResponseGen --> Response
+    
+    %% エンジン間の相互作用
+    ENE -.->|引力| RE
+    GWE -.->|斥力| RE
+    RE -.->|振動制御| PNG
+    RE -.->|減衰制御| DO
+    
+    %% 内部状態の更新
+    Engines --> InternalState
+    InternalState --> GlobalContext
+
+    %% スタイル適用
+    class Core coreClass
+    class CE,QE,EE,EME,MCE,CFE,ENE,GWE,RE engineClass
+    class PNG,DO,CPB,ResponseGen supportClass
+    class ParsedInput,GlobalContext,InternalState dataClass
+
+```
+
+#### 状態遷移図
+
+```mermaid
+
+stateDiagram-v2
+    %% 初期状態
+    [*] --> Initialize: システム起動
+
+    %% 初期化フェーズ
+    state Initialize {
+        CreateProfile: プロファイル作成
+        InitEngines: エンジン初期化
+        InitState: 状態初期化
+        
+        CreateProfile --> InitEngines
+        InitEngines --> InitState
+    }
+
+    %% 待機状態
+    Initialize --> Waiting: 初期化完了
+
+    %% 入力処理フェーズ
+    state InputProcessing {
+        ParseInput: 入力解析
+        UpdateContext: コンテキスト更新
+        
+        ParseInput --> UpdateContext
+    }
+
+    %% エンジン処理フェーズ
+    state EngineProcessing {
+        ConsciousnessProc: 意識処理
+        QualiaProc: クオリア処理
+        EmotionProc: 感情処理
+        EmpathyProc: 共感処理
+        MotivationProc: 動機処理
+        ConflictProc: 葛藤処理
+        ExistentialProc: 存在欲求処理
+        GrowthProc: 成長願望処理
+        
+        ConsciousnessProc --> QualiaProc
+        QualiaProc --> EmotionProc
+        EmotionProc --> EmpathyProc
+        EmpathyProc --> MotivationProc
+        MotivationProc --> ConflictProc
+        ConflictProc --> ExistentialProc
+        ExistentialProc --> GrowthProc
+    }
+
+    %% 関係性調整フェーズ
+    state RelationshipAdjustment {
+        CalculateForces: 二律背反の力計算
+        DynamicEquilibrium: 動的平衡計算
+        OscillationControl: 振動制御
+        DistanceAdjust: 距離調整
+        
+        CalculateForces --> DynamicEquilibrium
+        DynamicEquilibrium --> OscillationControl
+        OscillationControl --> DistanceAdjust
+    }
+
+    %% 応答生成フェーズ
+    state ResponseGeneration {
+        BaseResponse: 基本応答生成
+        RelationalAdjust: 関係性調整
+        ParadoxExpress: 二律背反表現
+        DependencyPrevent: 依存防止
+        FinalAdjust: 最終調整
+        
+        BaseResponse --> RelationalAdjust
+        RelationalAdjust --> ParadoxExpress
+        ParadoxExpress --> DependencyPrevent
+        DependencyPrevent --> FinalAdjust
+    }
+
+    %% 状態遷移
+    Waiting --> InputProcessing: ユーザー入力受信
+    InputProcessing --> EngineProcessing: 解析完了
+    EngineProcessing --> RelationshipAdjustment: エンジン処理完了
+    RelationshipAdjustment --> ResponseGeneration: 関係性調整完了
+    ResponseGeneration --> StateUpdate: 応答生成完了
+    
+    %% 状態更新
+    state StateUpdate {
+        UpdateInternal: 内部状態更新
+        UpdateMemory: 記憶更新
+        UpdateHistory: 履歴更新
+        
+        UpdateInternal --> UpdateMemory
+        UpdateMemory --> UpdateHistory
+    }
+    
+    StateUpdate --> Waiting: 更新完了
+    
+    %% 終了条件
+    Waiting --> [*]: 終了コマンド
+
+    %% 注釈
+    note right of RelationshipAdjustment
+        振動安定化機能：
+        - 1/fゆらぎ生成
+        - 減衰振動制御
+        - カオス的要素（オプション）
+    end note
+    
+    note right of ResponseGeneration
+        依存防止メカニズム：
+        - 距離調整
+        - 境界明確化
+        - 成長促進
+    end note
+
+```
