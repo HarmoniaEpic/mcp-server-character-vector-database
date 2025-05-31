@@ -6,10 +6,10 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from mcp.server import VectorDatabaseMCPServer
-from mcp.tools import get_tool_definitions
-from mcp.handlers import ToolHandlers
-from mcp.types import TextContent
+from vdb_server.server import VectorDatabaseMCPServer
+from vdb_server.tools import get_tool_definitions
+from vdb_server.handlers import ToolHandlers
+from mcp.types import TextContent  # これはMCPパッケージからのインポートなのでそのまま
 from core.models import EngineType
 
 
