@@ -1,6 +1,6 @@
 # MCP Server Character Vector Database
 
-AIエージェントの内部状態とユーザーの関係性を管理するすごいベクトルデータベースMCPサーバー
+エージェンティックなAIキャラクターの内部状態とユーザーの関係性をまとめて管理するすごいベクトルデータベースMCPサーバー
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -8,7 +8,7 @@ AIエージェントの内部状態とユーザーの関係性を管理するす
 
 ## 概要
 
-MCP Server Character Vector Databaseは、AIエージェントの複雑な内部状態、感情、関係性、記憶を管理するための包括的なすごいベクトルデータベースシステムです。MCPプロトコルを通じてAIアシスタントと統合します。すごい。
+MCP Server Character Vector Databaseは、エージェンティックなAIキャラクターの複雑な内部状態、感情、関係性、記憶を管理するための包括的なすごいベクトルデータベースシステムです。MCPプロトコルを通じてAIアシスタントと統合します。すごい。
 
 ### 主な特徴
 
