@@ -246,7 +246,7 @@ mypy .
    - `unified-inner-engine-v3.1.txt`と`unified-engine-mcp-manual.md`がプロジェクトルートに存在することを確認
 
 4. **財布が見つからない**
-   - 最寄りの交番へ
+   - [最寄りの交番へ](https://sundaygx.com/work/1230/) ※ モンジュのデザイン大好き
 
 5. **愛が見つからない**
    - [新規作成する](https://ansaikuropedia.org/wiki/%E6%84%9B)
