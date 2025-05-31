@@ -38,7 +38,7 @@ MCP Server Character Vector Databaseは、エージェンティックなAIキャ
 ### 基本インストール
 
 ```bash
-# リポジトリのクローン
+# リポジトリのクロリコーン
 git clone https://github.com/yourusername/mcp-server-character-vector-database.git
 cd mcp-server-character-vector-database
 
