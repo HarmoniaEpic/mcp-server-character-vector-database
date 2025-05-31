@@ -16,8 +16,8 @@
 # Oscillation analysis
 -r oscillation/requirements.txt
 
-# MCP server
--r mcp/requirements.txt
+# MCP vector database server
+-r vdb_server/requirements.txt
 
 # Configuration module
 -r config/requirements.txt
