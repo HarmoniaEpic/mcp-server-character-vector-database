@@ -102,7 +102,7 @@ vector_database_mcp/
 ├── session/         # セッション管理
 ├── document/        # ドキュメント管理
 ├── oscillation/     # 振動パターン分析
-├── mcp/             # MCPサーバー実装
+├── vdb_server/      # MCPサーバー実装
 └── tests/           # テストスイート
 ```
 
