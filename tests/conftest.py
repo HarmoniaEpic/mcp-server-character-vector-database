@@ -15,7 +15,7 @@ from security.pink_noise import SecureEnhancedPinkNoiseGenerator
 from session.manager import SecureSessionManager
 from document.manager import DocumentManager
 from oscillation.buffer import OscillationBuffer
-from mcp.server import VectorDatabaseMCPServer
+from vdb_server.server import VectorDatabaseMCPServer
 
 
 @pytest.fixture
