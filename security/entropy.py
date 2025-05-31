@@ -88,8 +88,12 @@ class SecureEntropySource:
     
     def _get_combined_secure_entropy(self, bytes_count: int) -> int:
         """複数エントロピー源の組み合わせによる高品質エントロピー"""
+        # ビット数を計算
+        bit_count = bytes_count * 8
+        bit_mask = (1 << bit_count) - 1
+        
         # 1. secrets モジュール（暗号学的に安全）
-        entropy1 = secrets.randbits(bytes_count * 8)
+        entropy1 = secrets.randbits(bit_count)
         
         # 2. os.urandom（OS提供のエントロピー）
         entropy_bytes = os.urandom(bytes_count)
@@ -97,33 +101,48 @@ class SecureEntropySource:
         
         # 3. 高解像度時間ベース（マイクロ秒 + ナノ秒）
         time_ns = time.time_ns()
-        entropy3 = hash(time_ns) & ((1 << (bytes_count * 8)) - 1)
+        entropy3 = hash(time_ns) & bit_mask
         
         # 4. メモリアドレスベース
         dummy_object = object()
-        memory_entropy = hash(id(dummy_object)) & ((1 << (bytes_count * 8)) - 1)
+        memory_entropy = hash(id(dummy_object)) & bit_mask
         
         # 5. プロセス固有情報
-        process_entropy = hash(os.getpid() + time.process_time_ns()) & ((1 << (bytes_count * 8)) - 1)
+        process_entropy = hash(os.getpid() + time.process_time_ns()) & bit_mask
         
-        # XORとrotationで組み合わせ
+        # XORとrotationで組み合わせ（適切なビット幅で）
         combined = entropy1 ^ entropy2
-        combined ^= self._rotate_left(entropy3, 8)
-        combined ^= self._rotate_left(memory_entropy, 16) 
-        combined ^= self._rotate_left(process_entropy, 24)
+        combined ^= self._rotate_left(entropy3, 8, bit_count)
+        combined ^= self._rotate_left(memory_entropy, 16, bit_count) 
+        combined ^= self._rotate_left(process_entropy, 24, bit_count)
+        
+        # 最終的にビットマスクを適用して範囲内に収める
+        combined &= bit_mask
         
         # 追加のハッシュ混合
-        combined_bytes = combined.to_bytes(bytes_count, byteorder='little', signed=False)
+        # to_bytesの前にサイズチェック
+        if combined >= (1 << bit_count):
+            combined &= bit_mask
+        
+        try:
+            combined_bytes = combined.to_bytes(bytes_count, byteorder='little', signed=False)
+        except OverflowError:
+            # フォールバック：combinedをハッシュ化してからバイト列に変換
+            combined_hash = hashlib.sha256(str(combined).encode()).digest()
+            combined_bytes = combined_hash[:bytes_count]
+        
         final_hash = hashlib.blake2b(combined_bytes, digest_size=bytes_count).digest()
         final_entropy = int.from_bytes(final_hash, byteorder='little')
         
         self.quality_metrics["successful_calls"] += 1
-        self.quality_metrics["total_entropy_bits"] += bytes_count * 8
+        self.quality_metrics["total_entropy_bits"] += bit_count
         
         return final_entropy
     
     def _rotate_left(self, value: int, shift: int, width: int = 64) -> int:
         """左回転によるビット混合"""
+        # widthビットにマスク
+        value &= ((1 << width) - 1)
         shift = shift % width
         return ((value << shift) | (value >> (width - shift))) & ((1 << width) - 1)
     
