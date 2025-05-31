@@ -8,7 +8,7 @@ AIエージェントの内部状態と関係性を管理する高度なベクト
 
 ## 概要
 
-MCP Server Character Vector Databaseは、AIエージェントの複雑な内部状態、感情、関係性、記憶を管理するための包括的なベクトルデータベースシステムです。[Unified Inner Engine System v3.1](https://github.com/Sunwood-ai-labs/UnifiedInteractionEngine-Mermaid-CustomCSS)の仕様に準拠し、MCPプロトコルを通じてAIアシスタントと統合します。
+MCP Server Character Vector Databaseは、AIエージェントの複雑な内部状態、感情、関係性、記憶を管理するための包括的なベクトルデータベースシステムです。MCPプロトコルを通じてAIアシスタントと統合します。
 
 ### 主な特徴
 
