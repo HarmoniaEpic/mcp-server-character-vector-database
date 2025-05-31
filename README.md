@@ -246,11 +246,15 @@ mypy .
 
 ### MCP Server Character Vector Database
 
+LLMがエミュレーション中のAIキャラクターに対して、記憶と心理状態の連続性を一定程度担保するためのすごいベクトルデータベースサーバー。
+
 #### システム構成図
 
 #### 状態遷移図
 
 ### Unified Inner Engine System (pseudocode)
+
+疑似コードで書かれたキャラクターシート。最近の理屈っぽいLLMにノリノリで演技させるためのすごいやり方。Not Only Neat Thing to Do
 
 #### システム構成図
 
