@@ -1,6 +1,3 @@
-# mcp-server-character-vector-database
-
-
 # MCP Server Character Vector Database
 
 AIエージェントの内部状態と関係性を管理する高度なベクトルデータベースMCPサーバー
