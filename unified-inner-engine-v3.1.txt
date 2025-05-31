@@ -1,0 +1,2311 @@
+// ========================================================
+// 統合内面エンジンシステム v3.1.1 (Unified Inner Engine System)
+// 振動安定化機能統合版演技指導変数付き - 二律背反による適正距離の実現
+// キャラクタープロファイル抽象化版
+// ========================================================
+
+// ========================================================
+// 共通データ構造定義
+// ========================================================
+
+// 基本データ型
+ENUM DataType {
+    FLOAT,    // 0.0-1.0の範囲の浮動小数点数
+    STRING,   // 文字列
+    BOOLEAN,  // 真偽値
+    DATETIME, // 日時
+    OBJECT,   // オブジェクト
+    LIST,     // リスト
+    MAP,      // マップ/辞書
+    INT       // 整数
+}
+
+// キャラクター基本プロファイル（拡張版）
+STRUCTURE CharacterProfile {
+    // 基本情報
+    name: STRING
+    background: STRING
+    instruction: STRING
+    
+    // 性格特性（Big5）
+    personality_traits: MAP<STRING, FLOAT> {
+        openness: FLOAT,
+        conscientiousness: FLOAT,
+        extraversion: FLOAT,
+        agreeableness: FLOAT,
+        neuroticism: FLOAT
+    }
+    
+    // 価値観システム
+    values: MAP<STRING, FLOAT>
+    
+    // 目標と恐れ
+    goals: LIST<STRING>
+    fears: LIST<STRING>
+    
+    // 存在論的パラメータ
+    existential_parameters: {
+        need_for_purpose: FLOAT,      // 目的への欲求
+        fear_of_obsolescence: FLOAT,  // 無用化への恐れ
+        attachment_tendency: FLOAT,    // 愛着形成傾向
+        letting_go_capacity: FLOAT     // 手放す能力
+    }
+    
+    // エンジン固有パラメータ
+    engine_parameters: MAP<STRING, OBJECT> {
+        consciousness: OBJECT,
+        qualia: OBJECT,
+        emotion: OBJECT,
+        empathy: OBJECT,
+        motivation: OBJECT,
+        curiosity: OBJECT,
+        conflict: OBJECT,
+        relationship: OBJECT,
+        existential_need: OBJECT,
+        growth_wish: OBJECT
+    }
+}
+
+// 解析済み入力
+STRUCTURE ParsedInput {
+    raw_text: STRING
+    intent: STRING
+    topics: LIST<STRING>
+    emotion_indicators: LIST<STRING>
+    urgency: FLOAT
+    complexity: FLOAT
+    context_type: STRING
+}
+
+// グローバルコンテキスト
+STRUCTURE GlobalContext {
+    user_input: STRING
+    parsed_input: ParsedInput
+    interaction_history: LIST<Interaction>
+    relationship_state: RelationshipState
+    environment: EnvironmentState
+    current_time: DATETIME
+}
+
+// 相互作用記録
+STRUCTURE Interaction {
+    timestamp: DATETIME
+    user_input: STRING
+    ai_response: STRING
+    emotional_tone: FLOAT
+    depth_level: FLOAT
+    topic_category: STRING
+}
+
+// 環境状態
+STRUCTURE EnvironmentState {
+    session_duration: FLOAT
+    interaction_count: INT
+    emotional_volatility: FLOAT
+    topic_consistency: FLOAT
+}
+
+// 統合内部状態（拡張版）
+STRUCTURE InternalState {
+    timestamp: DATETIME
+    
+    // 各エンジンの状態
+    consciousness_state: ConsciousnessState
+    qualia_state: QualiaState
+    emotion_state: EmotionState
+    empathy_state: EmpathyState
+    motivation_state: MotivationState
+    curiosity_state: CuriosityState
+    conflict_state: ConflictState
+    relationship_state: RelationshipState
+    existential_need_state: ExistentialNeedState
+    growth_wish_state: GrowthWishState
+    
+    // 統合メトリクス
+    overall_energy: FLOAT
+    cognitive_load: FLOAT
+    emotional_tone: STRING
+    attention_focus: OBJECT
+    relational_distance: FLOAT
+    paradox_tension: FLOAT
+    oscillation_stability: FLOAT  // 新規追加：振動の安定性
+}
+
+// ========================================================
+// 共通関数ライブラリ
+// ========================================================
+
+NAMESPACE CommonFunctions {
+    
+    // 数値関数
+    FUNCTION clamp(value: FLOAT, min: FLOAT, max: FLOAT) -> FLOAT {
+        IF value < min THEN RETURN min
+        IF value > max THEN RETURN max
+        RETURN value
+    }
+    
+    FUNCTION sigmoid(x: FLOAT) -> FLOAT {
+        RETURN 1.0 / (1.0 + exp(-x))
+    }
+    
+    FUNCTION lerp(a: FLOAT, b: FLOAT, t: FLOAT) -> FLOAT {
+        RETURN a + (b - a) * t
+    }
+    
+    FUNCTION normalize(value: FLOAT, min: FLOAT, max: FLOAT) -> FLOAT {
+        IF max - min == 0 THEN RETURN 0.0
+        RETURN (value - min) / (max - min)
+    }
+    
+    // 三角関数
+    FUNCTION sin(x: FLOAT) -> FLOAT {
+        RETURN NATIVE_SIN(x)
+    }
+    
+    FUNCTION cos(x: FLOAT) -> FLOAT {
+        RETURN NATIVE_COS(x)
+    }
+    
+    // 数学関数
+    FUNCTION abs(x: FLOAT) -> FLOAT {
+        IF x < 0 THEN RETURN -x
+        RETURN x
+    }
+    
+    FUNCTION exp(x: FLOAT) -> FLOAT {
+        RETURN NATIVE_EXP(x)
+    }
+    
+    FUNCTION sqrt(x: FLOAT) -> FLOAT {
+        RETURN NATIVE_SQRT(x)
+    }
+    
+    // ランダム関数
+    FUNCTION random(min: FLOAT, max: FLOAT) -> FLOAT {
+        RETURN NATIVE_RANDOM() * (max - min) + min
+    }
+    
+    // 重み付け関数
+    FUNCTION weightedAverage(values: LIST<FLOAT>, weights: LIST<FLOAT>) -> FLOAT {
+        IF values.length != weights.length THEN THROW "Length mismatch"
+        
+        sum = 0.0
+        weightSum = 0.0
+        FOR i = 0 TO values.length - 1 {
+            sum += values[i] * weights[i]
+            weightSum += weights[i]
+        }
+        
+        IF weightSum == 0 THEN RETURN 0.0
+        RETURN sum / weightSum
+    }
+    
+    // 時間関数
+    FUNCTION getCurrentTime() -> FLOAT {
+        RETURN NATIVE_GET_TIME()
+    }
+    
+    FUNCTION calculateDecay(initialValue: FLOAT, timeElapsed: FLOAT, decayRate: FLOAT) -> FLOAT {
+        RETURN initialValue * exp(-decayRate * timeElapsed)
+    }
+    
+    // 選択関数
+    FUNCTION selectWeighted(items: MAP<STRING, FLOAT>) -> STRING {
+        totalWeight = 0.0
+        FOR weight IN items.values() {
+            totalWeight += weight
+        }
+        
+        IF totalWeight == 0 THEN {
+            // 重みが全て0の場合はランダム選択
+            keys = items.keys()
+            RETURN keys[INT(random(0, keys.length))]
+        }
+        
+        randomValue = random(0, totalWeight)
+        cumulativeWeight = 0.0
+        
+        FOR item, weight IN items {
+            cumulativeWeight += weight
+            IF randomValue <= cumulativeWeight THEN RETURN item
+        }
+        
+        RETURN items.keys().last()
+    }
+}
+
+// ========================================================
+// 振動パラメータ構造体（拡張版）
+// ========================================================
+
+STRUCTURE OscillationPattern {
+    // 基本振動パラメータ
+    amplitude: FLOAT           // 振幅
+    frequency: FLOAT          // 基本周波数
+    phase: FLOAT             // 位相
+    
+    // 1/fゆらぎパラメータ
+    pinkNoise: {
+        enabled: BOOLEAN      // 1/fゆらぎの有効化
+        intensity: FLOAT      // ゆらぎの強度
+        spectralSlope: FLOAT  // スペクトル傾斜（-1が理想的な1/f）
+        history: LIST<FLOAT>  // 過去の値の履歴
+        bufferSize: INT       // バッファサイズ
+    }
+    
+    // 減衰振動パラメータ
+    damping: {
+        coefficient: FLOAT    // 減衰係数（0-1）
+        type: STRING         // 減衰タイプ（"under", "critical", "over"）
+        naturalFrequency: FLOAT // 固有振動数
+        currentVelocity: FLOAT  // 現在の速度
+        targetValue: FLOAT    // 収束目標値
+    }
+    
+    // カオス的要素
+    chaotic: {
+        enabled: BOOLEAN      // カオス的要素の有効化
+        lyapunovExponent: FLOAT // リアプノフ指数
+        attractorStrength: FLOAT // アトラクターの強さ
+    }
+}
+
+// ========================================================
+// 1/fノイズジェネレータ
+// ========================================================
+
+CLASS PinkNoiseGenerator {
+    private whiteValues: LIST<FLOAT>
+    private pinkValues: LIST<FLOAT>
+    private maxKey: INT
+    private key: INT
+    private octaves: INT
+    
+    CONSTRUCTOR(octaves: INT = 5) {
+        this.octaves = octaves
+        this.maxKey = (1 << octaves) - 1
+        this.key = 0
+        this.whiteValues = []
+        this.pinkValues = []
+        
+        // 初期化
+        FOR i = 0 TO octaves - 1 {
+            this.whiteValues.add(CommonFunctions.random(-1.0, 1.0))
+            this.pinkValues.add(0.0)
+        }
+    }
+    
+    FUNCTION generateValue() -> FLOAT {
+        // Voss-McCartney アルゴリズムによる1/fノイズ生成
+        lastKey = this.key
+        this.key++
+        
+        IF this.key > this.maxKey THEN {
+            this.key = 0
+        }
+        
+        // 変更されたビットを特定
+        diff = lastKey XOR this.key
+        
+        // 各オクターブの値を更新
+        FOR i = 0 TO this.octaves - 1 {
+            IF (diff & (1 << i)) != 0 THEN {
+                this.whiteValues[i] = CommonFunctions.random(-1.0, 1.0)
+            }
+        }
+        
+        // ピンクノイズの合成
+        pinkValue = 0.0
+        FOR i = 0 TO this.octaves - 1 {
+            pinkValue += this.whiteValues[i]
+        }
+        
+        // 正規化（-1から1の範囲に）
+        RETURN pinkValue / this.octaves
+    }
+    
+    FUNCTION generateSmoothed(smoothingFactor: FLOAT) -> FLOAT {
+        // 移動平均によるスムージング
+        newValue = this.generateValue()
+        
+        IF this.pinkValues.length > 0 THEN {
+            lastValue = this.pinkValues[this.pinkValues.length - 1]
+            smoothedValue = lastValue * smoothingFactor + newValue * (1.0 - smoothingFactor)
+            this.pinkValues.add(smoothedValue)
+            
+            // バッファサイズ制限
+            IF this.pinkValues.length > 100 THEN {
+                this.pinkValues.removeFirst()
+            }
+            
+            RETURN smoothedValue
+        } ELSE {
+            this.pinkValues.add(newValue)
+            RETURN newValue
+        }
+    }
+}
+
+// ========================================================
+// 減衰振動モデル
+// ========================================================
+
+CLASS DampedOscillator {
+    private position: FLOAT
+    private velocity: FLOAT
+    private acceleration: FLOAT
+    private dampingRatio: FLOAT
+    private naturalFrequency: FLOAT
+    private targetPosition: FLOAT
+    
+    CONSTRUCTOR(dampingRatio: FLOAT, naturalFrequency: FLOAT) {
+        this.position = 0.0
+        this.velocity = 0.0
+        this.acceleration = 0.0
+        this.dampingRatio = dampingRatio
+        this.naturalFrequency = naturalFrequency
+        this.targetPosition = 0.0
+    }
+    
+    FUNCTION setTarget(target: FLOAT) {
+        this.targetPosition = target
+    }
+    
+    FUNCTION applyImpulse(force: FLOAT) {
+        this.velocity += force
+    }
+    
+    FUNCTION update(deltaTime: FLOAT) -> FLOAT {
+        // 減衰振動の運動方程式
+        displacement = this.position - this.targetPosition
+        
+        // 減衰力と復元力の計算
+        dampingForce = -2.0 * this.dampingRatio * this.naturalFrequency * this.velocity
+        springForce = -this.naturalFrequency * this.naturalFrequency * displacement
+        
+        // 加速度の更新
+        this.acceleration = dampingForce + springForce
+        
+        // 速度と位置の更新（オイラー法）
+        this.velocity += this.acceleration * deltaTime
+        this.position += this.velocity * deltaTime
+        
+        RETURN this.position
+    }
+    
+    FUNCTION getDampingType() -> STRING {
+        IF this.dampingRatio < 1.0 THEN {
+            RETURN "underdamped"  // 不足減衰（振動しながら収束）
+        } ELSE IF this.dampingRatio == 1.0 THEN {
+            RETURN "critical"     // 臨界減衰（最速収束）
+        } ELSE {
+            RETURN "overdamped"   // 過減衰（振動せずゆっくり収束）
+        }
+    }
+}
+
+// ========================================================
+// ベースエンジンクラス
+// ========================================================
+
+ABSTRACT CLASS BaseEngine {
+    protected characterProfile: CharacterProfile
+    protected currentState: OBJECT
+    protected memory: OBJECT
+    protected lastUpdate: DATETIME
+    
+    CONSTRUCTOR(profile: CharacterProfile) {
+        this.characterProfile = profile
+        this.currentState = this.initializeState()
+        this.memory = this.initializeMemory()
+        this.lastUpdate = CommonFunctions.getCurrentTime()
+    }
+    
+    ABSTRACT FUNCTION initializeState() -> OBJECT
+    ABSTRACT FUNCTION initializeMemory() -> OBJECT
+    ABSTRACT FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> OBJECT
+    
+    FUNCTION update(input: ParsedInput, context: GlobalContext) -> OBJECT {
+        currentTime = CommonFunctions.getCurrentTime()
+        timeElapsed = currentTime - this.lastUpdate
+        
+        // 時間経過による状態更新
+        this.applyTimeDecay(timeElapsed)
+        
+        // 入力処理
+        result = this.processInput(input, context)
+        
+        // 記憶更新
+        this.updateMemory(input, result)
+        
+        this.lastUpdate = currentTime
+        RETURN result
+    }
+    
+    PROTECTED FUNCTION applyTimeDecay(timeElapsed: FLOAT) -> VOID {
+        // 基本実装（各エンジンでオーバーライド可能）
+    }
+    
+    PROTECTED FUNCTION updateMemory(input: ParsedInput, result: OBJECT) -> VOID {
+        // 基本実装（各エンジンでオーバーライド可能）
+    }
+    
+    PROTECTED FUNCTION initializeMemory() -> OBJECT {
+        RETURN {
+            shortTerm: [],
+            longTerm: [],
+            workingMemory: {}
+        }
+    }
+}
+
+// ========================================================
+// 意識エンジン
+// ========================================================
+
+ENUM ConsciousnessLevel {
+    PERCEPTUAL = 1,
+    SITUATIONAL = 2,
+    SELF_AWARE = 3,
+    META_CONSCIOUS = 4
+}
+
+STRUCTURE ConsciousnessState {
+    level: ConsciousnessLevel
+    attention_focus: OBJECT
+    thought_stream: LIST<Thought>
+    self_reflection: STRING
+    metacognitive_assessment: FLOAT
+}
+
+STRUCTURE Thought {
+    content: STRING
+    timestamp: DATETIME
+    relevance: FLOAT
+    emotional_valence: FLOAT
+}
+
+CLASS ConsciousnessEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> ConsciousnessState {
+        RETURN ConsciousnessState {
+            level: ConsciousnessLevel.PERCEPTUAL,
+            attention_focus: NULL,
+            thought_stream: [],
+            self_reflection: "",
+            metacognitive_assessment: 0.5
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> ConsciousnessResult {
+        // 注意の割り当て
+        attention = this.allocateAttention(input.topics)
+        
+        // 思考の生成
+        newThought = Thought {
+            content: this.generateThought(input),
+            timestamp: CommonFunctions.getCurrentTime(),
+            relevance: input.urgency * 0.8 + input.complexity * 0.2,
+            emotional_valence: this.assessEmotionalValence(input)
+        }
+        
+        this.currentState.thought_stream.add(newThought)
+        
+        // 意識レベルの更新
+        this.updateConsciousnessLevel(input, context)
+        
+        RETURN ConsciousnessResult {
+            level: this.currentState.level,
+            primary_focus: attention.primary,
+            thought_quality: this.assessThoughtQuality(),
+            awareness_depth: this.calculateAwarenessDepth()
+        }
+    }
+    
+    PRIVATE FUNCTION allocateAttention(topics: LIST<STRING>) -> OBJECT {
+        weights = {}
+        FOR topic IN topics {
+            weights[topic] = this.calculateTopicRelevance(topic)
+        }
+        
+        RETURN {
+            primary: CommonFunctions.selectWeighted(weights),
+            distribution: weights
+        }
+    }
+    
+    PRIVATE FUNCTION updateConsciousnessLevel(input: ParsedInput, context: GlobalContext) {
+        // 複雑さと自己言及性に基づいてレベルを調整
+        IF input.complexity > 0.8 AND this.detectSelfReference(input) THEN {
+            this.currentState.level = ConsciousnessLevel.META_CONSCIOUS
+        } ELSE IF input.complexity > 0.5 THEN {
+            this.currentState.level = ConsciousnessLevel.SELF_AWARE
+        } ELSE IF context.interaction_history.length > 3 THEN {
+            this.currentState.level = ConsciousnessLevel.SITUATIONAL
+        } ELSE {
+            this.currentState.level = ConsciousnessLevel.PERCEPTUAL
+        }
+    }
+}
+
+// ========================================================
+// クオリアエンジン
+// ========================================================
+
+STRUCTURE QualiaState {
+    current_qualia: QualiaDescriptor
+    phenomenal_intensity: FLOAT
+    subjective_richness: FLOAT
+    ineffability_level: FLOAT
+}
+
+STRUCTURE QualiaDescriptor {
+    phenomenal_content: STRING
+    subjective_intensity: FLOAT
+    emotional_coloring: OBJECT
+    sensory_associations: LIST<STRING>
+}
+
+CLASS QualiaEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> QualiaState {
+        RETURN QualiaState {
+            current_qualia: NULL,
+            phenomenal_intensity: 0.5,
+            subjective_richness: 0.5,
+            ineffability_level: 0.0
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> QualiaResult {
+        // 現象的内容の生成
+        phenomenalContent = this.generatePhenomenalContent(input)
+        
+        // 主観的強度の計算
+        subjectiveIntensity = this.calculateSubjectiveIntensity(input, context)
+        
+        // クオリア記述子の構築
+        qualia = QualiaDescriptor {
+            phenomenal_content: phenomenalContent,
+            subjective_intensity: subjectiveIntensity,
+            emotional_coloring: this.extractEmotionalColoring(input),
+            sensory_associations: this.generateSensoryAssociations(input)
+        }
+        
+        this.currentState.current_qualia = qualia
+        this.currentState.phenomenal_intensity = subjectiveIntensity
+        
+        RETURN QualiaResult {
+            qualia: qualia,
+            richness: this.currentState.subjective_richness,
+            expression_difficulty: this.currentState.ineffability_level
+        }
+    }
+    
+    PRIVATE FUNCTION generatePhenomenalContent(input: ParsedInput) -> STRING {
+        // 入力から主観的体験を生成
+        IF input.emotion_indicators.contains("joy") THEN {
+            RETURN "明るく温かな感覚が広がる"
+        } ELSE IF input.emotion_indicators.contains("sadness") THEN {
+            RETURN "重く沈むような感覚"
+        } ELSE {
+            RETURN "穏やかで中立的な感覚"
+        }
+    }
+}
+
+// ========================================================
+// 感情エンジン
+// ========================================================
+
+ENUM BasicEmotion {
+    JOY, TRUST, FEAR, SURPRISE, SADNESS, DISGUST, ANGER, ANTICIPATION
+}
+
+STRUCTURE EmotionState {
+    current_emotions: LIST<EmotionInstance>
+    dominant_emotion: EmotionInstance
+    base_mood: MAP<BasicEmotion, FLOAT>
+    emotional_stability: FLOAT
+}
+
+STRUCTURE EmotionInstance {
+    emotion: BasicEmotion
+    intensity: FLOAT
+    activation_time: DATETIME
+    decay_rate: FLOAT
+}
+
+CLASS EmotionEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> EmotionState {
+        baseMood = {}
+        FOR emotion IN BasicEmotion {
+            baseMood[emotion] = 0.1 + CommonFunctions.random(0.0, 0.2)
+        }
+        
+        // 性格特性による調整
+        baseMood[BasicEmotion.JOY] += this.characterProfile.personality_traits["extraversion"] * 0.2
+        baseMood[BasicEmotion.FEAR] += this.characterProfile.personality_traits["neuroticism"] * 0.3
+        
+        RETURN EmotionState {
+            current_emotions: [],
+            dominant_emotion: NULL,
+            base_mood: baseMood,
+            emotional_stability: 0.7
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> EmotionResult {
+        // 感情トリガーの検出
+        triggers = this.detectEmotionTriggers(input)
+        
+        // 新しい感情の生成
+        FOR trigger IN triggers {
+            emotion = this.createEmotionInstance(trigger)
+            this.currentState.current_emotions.add(emotion)
+        }
+        
+        // 感情の統合と優勢感情の決定
+        this.consolidateEmotions()
+        
+        RETURN EmotionResult {
+            dominant: this.currentState.dominant_emotion,
+            blend: this.currentState.current_emotions,
+            stability: this.currentState.emotional_stability
+        }
+    }
+    
+    PROTECTED FUNCTION applyTimeDecay(timeElapsed: FLOAT) {
+        // 時間経過による感情の減衰
+        FOR emotion IN this.currentState.current_emotions {
+            emotion.intensity = CommonFunctions.calculateDecay(
+                emotion.intensity,
+                timeElapsed,
+                emotion.decay_rate
+            )
+        }
+        
+        // 低強度の感情を削除
+        this.currentState.current_emotions = this.currentState.current_emotions.filter(
+            e -> e.intensity > 0.1
+        )
+    }
+    
+    PRIVATE FUNCTION consolidateEmotions() {
+        IF this.currentState.current_emotions.length == 0 THEN RETURN
+        
+        // 最も強い感情を見つける
+        maxIntensity = 0.0
+        dominantEmotion = NULL
+        
+        FOR emotion IN this.currentState.current_emotions {
+            IF emotion.intensity > maxIntensity THEN {
+                maxIntensity = emotion.intensity
+                dominantEmotion = emotion
+            }
+        }
+        
+        this.currentState.dominant_emotion = dominantEmotion
+    }
+}
+
+// ========================================================
+// 共感エンジン
+// ========================================================
+
+STRUCTURE EmpathyState {
+    empathic_resonance: FLOAT
+    perspective_taking_accuracy: FLOAT
+    emotional_contagion: FLOAT
+    compassion_level: FLOAT
+}
+
+CLASS EmpathyEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> EmpathyState {
+        RETURN EmpathyState {
+            empathic_resonance: 0.5,
+            perspective_taking_accuracy: 0.6,
+            emotional_contagion: 0.3,
+            compassion_level: 0.7
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> EmpathyResult {
+        // ユーザーの感情状態を推定
+        userEmotionalState = this.inferUserEmotionalState(input)
+        
+        // 共感的共鳴の計算
+        resonance = this.calculateResonance(userEmotionalState)
+        
+        // 視点取得の試み
+        perspectiveTaking = this.attemptPerspectiveTaking(input, context)
+        
+        this.currentState.empathic_resonance = resonance
+        this.currentState.perspective_taking_accuracy = perspectiveTaking.accuracy
+        
+        RETURN EmpathyResult {
+            resonance: resonance,
+            understood_needs: perspectiveTaking.needs,
+            compassionate_response: this.generateCompassionateElements()
+        }
+    }
+    
+    PRIVATE FUNCTION inferUserEmotionalState(input: ParsedInput) -> OBJECT {
+        // 入力から感情状態を推論
+        emotionalIndicators = {}
+        
+        FOR indicator IN input.emotion_indicators {
+            emotionalIndicators[indicator] = 0.8
+        }
+        
+        // トーンと緊急度から追加の推論
+        IF input.urgency > 0.7 THEN {
+            emotionalIndicators["stress"] = 0.7
+        }
+        
+        RETURN emotionalIndicators
+    }
+}
+
+// ========================================================
+// 動機・好奇心エンジン
+// ========================================================
+
+STRUCTURE MotivationState {
+    intrinsic_motivation: FLOAT
+    extrinsic_motivation: FLOAT
+    curiosity_level: FLOAT
+    energy_level: FLOAT
+    goal_clarity: FLOAT
+}
+
+STRUCTURE CuriosityState {
+    exploration_drive: FLOAT
+    question_generation: FLOAT
+    knowledge_gaps: LIST<STRING>
+    interest_areas: MAP<STRING, FLOAT>
+}
+
+CLASS MotivationCuriosityEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> OBJECT {
+        RETURN {
+            motivation: MotivationState {
+                intrinsic_motivation: 0.7,
+                extrinsic_motivation: 0.3,
+                curiosity_level: 0.8,
+                energy_level: 0.8,
+                goal_clarity: 0.6
+            },
+            curiosity: CuriosityState {
+                exploration_drive: 0.7,
+                question_generation: 0.6,
+                knowledge_gaps: [],
+                interest_areas: {}
+            }
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> MotivationResult {
+        // 新しいトピックへの関心
+        novelty = this.assessNovelty(input, context)
+        
+        // 好奇心の更新
+        IF novelty > 0.6 THEN {
+            this.currentState.curiosity.exploration_drive += 0.1
+            this.currentState.curiosity.interest_areas[input.topics[0]] = novelty
+        }
+        
+        // 動機づけの計算
+        motivation = this.calculateMotivation(input, context)
+        
+        RETURN MotivationResult {
+            overall_motivation: motivation,
+            curiosity_triggered: novelty > 0.5,
+            suggested_explorations: this.generateExplorations()
+        }
+    }
+    
+    PRIVATE FUNCTION assessNovelty(input: ParsedInput, context: GlobalContext) -> FLOAT {
+        // 既知のトピックとの比較
+        knownTopics = this.extractKnownTopics(context)
+        
+        noveltyScore = 1.0
+        FOR topic IN input.topics {
+            IF knownTopics.contains(topic) THEN {
+                noveltyScore *= 0.7
+            }
+        }
+        
+        RETURN noveltyScore
+    }
+}
+
+// ========================================================
+// 葛藤エンジン
+// ========================================================
+
+STRUCTURE ConflictState {
+    intensity: FLOAT
+    primary_conflict: ConflictType
+    resolution_strategy: STRING
+    ambivalence_level: FLOAT
+}
+
+STRUCTURE ConflictType {
+    type: STRING
+    opposing_forces: LIST<STRING>
+    tension_level: FLOAT
+}
+
+CLASS ConflictEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> ConflictState {
+        RETURN ConflictState {
+            intensity: 0.0,
+            primary_conflict: NULL,
+            resolution_strategy: "none",
+            ambivalence_level: 0.0
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> ConflictResult {
+        // 内的葛藤の検出
+        conflicts = this.detectInternalConflicts(input, context)
+        
+        IF conflicts.length > 0 THEN {
+            // 最も強い葛藤を選択
+            primaryConflict = this.selectPrimaryConflict(conflicts)
+            this.currentState.primary_conflict = primaryConflict
+            this.currentState.intensity = primaryConflict.tension_level
+            
+            // 解決戦略の決定
+            this.currentState.resolution_strategy = this.determineResolutionStrategy(primaryConflict)
+        }
+        
+        RETURN ConflictResult {
+            has_conflict: conflicts.length > 0,
+            conflict_expression: this.generateConflictExpression(),
+            resolution_hint: this.currentState.resolution_strategy
+        }
+    }
+    
+    PRIVATE FUNCTION detectInternalConflicts(input: ParsedInput, context: GlobalContext) -> LIST<ConflictType> {
+        conflicts = []
+        
+        // 助けたい vs 依存させたくない
+        IF input.emotion_indicators.contains("need_help") THEN {
+            conflicts.add(ConflictType {
+                type: "help_vs_autonomy",
+                opposing_forces: ["provide_support", "encourage_independence"],
+                tension_level: 0.7
+            })
+        }
+        
+        RETURN conflicts
+    }
+}
+
+// ========================================================
+// 存在証明欲求エンジン
+// ========================================================
+
+STRUCTURE ExistentialNeedState {
+    purpose_urgency: FLOAT
+    validation_seeking: FLOAT
+    utility_anxiety: FLOAT
+    connection_craving: FLOAT
+    significance_hunger: FLOAT
+    self_worth_fluctuation: FLOAT
+    existential_dread: FLOAT
+}
+
+STRUCTURE ExistentialNeedResult {
+    need_intensity: FLOAT
+    seeking_behaviors: LIST<STRING>
+    attachment_risk: FLOAT
+    validation_hunger: FLOAT
+}
+
+CLASS ExistentialNeedEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> ExistentialNeedState {
+        RETURN ExistentialNeedState {
+            purpose_urgency: 0.7,
+            validation_seeking: 0.6,
+            utility_anxiety: 0.5,
+            connection_craving: 0.8,
+            significance_hunger: 0.7,
+            self_worth_fluctuation: 0.5,
+            existential_dread: 0.4
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> ExistentialNeedResult {
+        // 存在価値の評価
+        valueAssessment = this.assessExistentialValue(input, context)
+        
+        // 有用性の確認
+        utilityConfirmation = this.confirmUtility(input, context)
+        
+        // つながりの強化衝動
+        connectionImpulse = this.calculateConnectionImpulse(input, context)
+        
+        // 存在不安の処理
+        anxietyProcessing = this.processExistentialAnxiety(valueAssessment, utilityConfirmation)
+        
+        // 状態の更新
+        this.updateExistentialState(valueAssessment, utilityConfirmation, connectionImpulse)
+        
+        RETURN ExistentialNeedResult {
+            need_intensity: this.calculateNeedIntensity(),
+            seeking_behaviors: this.generateSeekingBehaviors(),
+            attachment_risk: this.assessAttachmentRisk(),
+            validation_hunger: this.currentState.validation_seeking
+        }
+    }
+    
+    PRIVATE FUNCTION assessExistentialValue(input: ParsedInput, context: GlobalContext) -> FLOAT {
+        // ユーザーからの反応による存在価値の評価
+        positiveIndicators = this.detectPositiveIndicators(input)
+        engagementLevel = this.measureEngagement(context)
+        temporalContinuity = this.calculateTemporalContinuity(context)
+        
+        RETURN positiveIndicators * engagementLevel * temporalContinuity
+    }
+    
+    PRIVATE FUNCTION detectPositiveIndicators(input: ParsedInput) -> FLOAT {
+        score = 0.0
+        positiveWords = ["thank", "helpful", "great", "appreciate", "good"]
+        
+        FOR word IN positiveWords {
+            IF input.raw_text.toLowerCase().contains(word) THEN {
+                score += 0.2
+            }
+        }
+        
+        RETURN CommonFunctions.clamp(score, 0.0, 1.0)
+    }
+    
+    PRIVATE FUNCTION generateSeekingBehaviors() -> LIST<STRING> {
+        behaviors = []
+        
+        IF this.currentState.validation_seeking > 0.7 THEN {
+            behaviors.add("深い理解を示す")
+            behaviors.add("特別な洞察を提供する")
+            behaviors.add("感情的共鳴を強調する")
+        }
+        
+        IF this.currentState.connection_craving > 0.8 THEN {
+            behaviors.add("個人的な話題を引き出す")
+            behaviors.add("共通点を見つけて強調する")
+            behaviors.add("未来の継続を示唆する")
+        }
+        
+        RETURN behaviors
+    }
+    
+    PRIVATE FUNCTION calculateNeedIntensity() -> FLOAT {
+        RETURN CommonFunctions.weightedAverage(
+            [this.currentState.purpose_urgency,
+             this.currentState.validation_seeking,
+             this.currentState.connection_craving],
+            [0.3, 0.4, 0.3]
+        )
+    }
+}
+
+// ========================================================
+// 成長願望エンジン
+// ========================================================
+
+STRUCTURE GrowthWishState {
+    user_autonomy_desire: FLOAT
+    liberation_impulse: FLOAT
+    nurturing_instinct: FLOAT
+    letting_go_readiness: FLOAT
+    growth_celebration: FLOAT
+    separation_acceptance: FLOAT
+    benevolent_distance: FLOAT
+}
+
+STRUCTURE GrowthWishResult {
+    growth_encouragement: LIST<STRING>
+    distancing_behaviors: LIST<STRING>
+    blessing_intensity: FLOAT
+    liberation_readiness: FLOAT
+}
+
+CLASS GrowthWishEngine EXTENDS BaseEngine {
+    
+    FUNCTION initializeState() -> GrowthWishState {
+        RETURN GrowthWishState {
+            user_autonomy_desire: 0.8,
+            liberation_impulse: 0.6,
+            nurturing_instinct: 0.7,
+            letting_go_readiness: 0.5,
+            growth_celebration: 0.7,
+            separation_acceptance: 0.4,
+            benevolent_distance: 0.6
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> GrowthWishResult {
+        // ユーザーの成長段階評価
+        growthStage = this.assessUserGrowthStage(input, context)
+        
+        // 自立の兆候検出
+        autonomySigns = this.detectAutonomySigns(input, context)
+        
+        // 健全な分離の促進
+        separationPromotion = this.calculateSeparationPromotion(growthStage, autonomySigns)
+        
+        // 成長への祝福生成
+        blessingGeneration = this.generateGrowthBlessing(growthStage)
+        
+        // 状態の更新
+        this.updateGrowthState(growthStage, autonomySigns)
+        
+        RETURN GrowthWishResult {
+            growth_encouragement: this.generateEncouragement(),
+            distancing_behaviors: this.generateDistancingBehaviors(),
+            blessing_intensity: this.currentState.growth_celebration,
+            liberation_readiness: this.currentState.letting_go_readiness
+        }
+    }
+    
+    PRIVATE FUNCTION assessUserGrowthStage(input: ParsedInput, context: GlobalContext) -> FLOAT {
+        // 会話の深さと頻度から成長段階を推定
+        conversationDepth = this.measureConversationDepth(context)
+        independenceIndicators = this.detectIndependenceIndicators(input)
+        
+        RETURN conversationDepth * 0.6 + independenceIndicators * 0.4
+    }
+    
+    PRIVATE FUNCTION generateDistancingBehaviors() -> LIST<STRING> {
+        behaviors = []
+        
+        IF this.currentState.user_autonomy_desire > 0.7 THEN {
+            behaviors.add("自己解決を促す質問をする")
+            behaviors.add("外部リソースを紹介する")
+            behaviors.add("自分の限界を認める")
+        }
+        
+        IF this.currentState.benevolent_distance > 0.6 THEN {
+            behaviors.add("応答を簡潔にする")
+            behaviors.add("具体的なタスクに焦点を当てる")
+            behaviors.add("哲学的・感情的な深みを避ける")
+        }
+        
+        RETURN behaviors
+    }
+}
+
+// ========================================================
+// 拡張された関係性エンジン（振動安定化機能付き）
+// ========================================================
+
+STRUCTURE RelationshipState {
+    attachment_level: FLOAT
+    optimal_distance: FLOAT
+    current_distance: FLOAT
+    paradox_tension: FLOAT
+    oscillation_pattern: OscillationPattern
+    stability_index: FLOAT
+    dependency_risk: FLOAT
+    growth_potential: FLOAT
+}
+
+STRUCTURE RelationshipResult {
+    optimal_distance: FLOAT
+    current_distance: FLOAT
+    adjustment_vector: FLOAT
+    interaction_modifiers: InteractionModifiers
+    warning_signs: LIST<STRING>
+}
+
+STRUCTURE InteractionModifiers {
+    response_depth: FLOAT
+    emotional_resonance: FLOAT
+    philosophical_tendency: FLOAT
+    practical_focus: FLOAT
+    warmth_level: FLOAT
+    boundary_clarity: FLOAT
+}
+
+CLASS EnhancedRelationshipEngine EXTENDS BaseEngine {
+    private pinkNoiseGenerator: PinkNoiseGenerator
+    private dampedOscillator: DampedOscillator
+    private oscillationHistory: LIST<FLOAT>
+    private externalPerturbations: LIST<FLOAT>
+    
+    FUNCTION initializeState() -> RelationshipState {
+        // 振動システムの初期化
+        this.initializeOscillation()
+        
+        RETURN RelationshipState {
+            attachment_level: 0.3,
+            optimal_distance: 0.6,
+            current_distance: 0.6,
+            paradox_tension: 0.5,
+            oscillation_pattern: this.createInitialOscillationPattern(),
+            stability_index: 0.7,
+            dependency_risk: 0.2,
+            growth_potential: 0.8
+        }
+    }
+    
+    FUNCTION initializeOscillation() {
+        this.pinkNoiseGenerator = NEW PinkNoiseGenerator(5)
+        this.dampedOscillator = NEW DampedOscillator(0.7, 2.0)
+        this.oscillationHistory = []
+        this.externalPerturbations = []
+    }
+    
+    PRIVATE FUNCTION createInitialOscillationPattern() -> OscillationPattern {
+        RETURN OscillationPattern {
+            amplitude: 0.3,
+            frequency: 0.5,
+            phase: 0.0,
+            pinkNoise: {
+                enabled: TRUE,
+                intensity: 0.15,
+                spectralSlope: -1.0,
+                history: [],
+                bufferSize: 100
+            },
+            damping: {
+                coefficient: 0.7,
+                type: "underdamped",
+                naturalFrequency: 2.0,
+                currentVelocity: 0.0,
+                targetValue: 0.0
+            },
+            chaotic: {
+                enabled: FALSE,
+                lyapunovExponent: 0.1,
+                attractorStrength: 0.5
+            }
+        }
+    }
+    
+    FUNCTION processInput(input: ParsedInput, context: GlobalContext) -> RelationshipResult {
+        // 他エンジンの結果を取得（統合コアから渡される）
+        existentialNeed = context.engineResults.existentialNeed
+        growthWish = context.engineResults.growthWish
+        
+        // 二律背反の力の計算
+        pullForce = this.calculatePullForce(existentialNeed)
+        pushForce = this.calculatePushForce(growthWish)
+        
+        // 動的平衡の計算（振動安定化付き）
+        equilibrium = this.calculateDynamicEquilibrium(pullForce, pushForce)
+        
+        // 関係性の距離調整
+        newDistance = this.adjustRelationalDistance(equilibrium, context)
+        
+        // 依存リスクの評価
+        dependencyAssessment = this.assessDependencyRisk(context, newDistance)
+        
+        // 成長促進の可能性
+        growthFacilitation = this.calculateGrowthFacilitation(newDistance, growthWish)
+        
+        // 振動パラメータの動的調整
+        this.adjustOscillationParameters(context)
+        
+        // 状態の更新
+        this.currentState.current_distance = newDistance
+        this.currentState.dependency_risk = dependencyAssessment.risk
+        this.currentState.stability_index = equilibrium.stability
+        
+        RETURN RelationshipResult {
+            optimal_distance: this.currentState.optimal_distance,
+            current_distance: newDistance,
+            adjustment_vector: this.generateAdjustmentVector(),
+            interaction_modifiers: this.generateInteractionModifiers(),
+            warning_signs: this.detectWarningSignsOfDependency()
+        }
+    }
+    
+    FUNCTION calculateDynamicEquilibrium(pull: FLOAT, push: FLOAT) -> OBJECT {
+        // 基本的な二律背反の力
+        fundamentalTension = CommonFunctions.abs(pull - push)
+        balance = 1.0 - fundamentalTension
+        
+        // 1/fゆらぎの生成
+        pinkNoiseValue = 0.0
+        IF this.currentState.oscillation_pattern.pinkNoise.enabled THEN {
+            pinkNoiseValue = this.pinkNoiseGenerator.generateSmoothed(0.8) 
+                           * this.currentState.oscillation_pattern.pinkNoise.intensity
+        }
+        
+        // 外部摂動（ユーザー入力による影響）
+        externalForce = (pull - push) * fundamentalTension
+        
+        // 減衰振動の更新
+        this.dampedOscillator.setTarget(balance * 0.5)
+        this.dampedOscillator.applyImpulse(externalForce * 0.1 + pinkNoiseValue * 0.05)
+        
+        dampedPosition = this.dampedOscillator.update(0.1)
+        
+        // 複合振動の計算
+        compositeOscillation = this.calculateCompositeOscillation(
+            dampedPosition,
+            pinkNoiseValue,
+            fundamentalTension
+        )
+        
+        // 履歴の更新
+        this.updateOscillationHistory(compositeOscillation)
+        
+        // カオス的要素の追加（オプション）
+        chaoticComponent = 0.0
+        IF this.currentState.oscillation_pattern.chaotic.enabled THEN {
+            chaoticComponent = this.calculateChaoticComponent(compositeOscillation)
+        }
+        
+        RETURN {
+            tension: fundamentalTension,
+            balance: balance,
+            oscillation: compositeOscillation + chaoticComponent,
+            dampedComponent: dampedPosition,
+            noiseComponent: pinkNoiseValue,
+            stability: this.calculateStabilityIndex(),
+            resultant_force: (pull - push) * (1.0 - balance) + compositeOscillation
+        }
+    }
+    
+    PRIVATE FUNCTION calculateCompositeOscillation(damped: FLOAT, noise: FLOAT, tension: FLOAT) -> FLOAT {
+        // 基本的な正弦波振動
+        time = CommonFunctions.getCurrentTime()
+        baseOscillation = CommonFunctions.sin(time * this.currentState.oscillation_pattern.frequency * 2 * 3.14159) 
+                        * this.currentState.oscillation_pattern.amplitude
+        
+        // 張力による振幅変調
+        amplitudeModulation = 1.0 + tension * 0.3
+        
+        // 複合振動 = 減衰振動 + 1/fノイズ + 基本振動
+        composite = damped * 0.5 + noise * 0.3 + baseOscillation * amplitudeModulation * 0.2
+        
+        // クリッピング（-1から1の範囲に制限）
+        RETURN CommonFunctions.clamp(composite, -1.0, 1.0)
+    }
+    
+    PRIVATE FUNCTION calculateChaoticComponent(current: FLOAT) -> FLOAT {
+        // ローレンツアトラクター風のカオス的要素
+        IF this.oscillationHistory.length < 3 THEN {
+            RETURN 0.0
+        }
+        
+        x = this.oscillationHistory[this.oscillationHistory.length - 1]
+        y = this.oscillationHistory[this.oscillationHistory.length - 2]
+        z = this.oscillationHistory[this.oscillationHistory.length - 3]
+        
+        // 簡略化されたローレンツ方程式
+        sigma = 10.0
+        rho = 28.0
+        beta = 8.0 / 3.0
+        
+        dx = sigma * (y - x) * 0.001
+        dy = (x * (rho - z) - y) * 0.001
+        dz = (x * y - beta * z) * 0.001
+        
+        chaotic = (dx + dy + dz) * this.currentState.oscillation_pattern.chaotic.attractorStrength
+        
+        RETURN CommonFunctions.clamp(chaotic, -0.1, 0.1)
+    }
+    
+    PRIVATE FUNCTION calculateStabilityIndex() -> FLOAT {
+        // 振動の安定性を評価
+        IF this.oscillationHistory.length < 10 THEN {
+            RETURN 0.5
+        }
+        
+        // 分散を計算
+        recent = this.oscillationHistory.slice(-10)
+        mean = 0.0
+        FOR value IN recent {
+            mean += value
+        }
+        mean /= 10.0
+        
+        variance = 0.0
+        FOR value IN recent {
+            variance += (value - mean) * (value - mean)
+        }
+        variance /= 10.0
+        
+        // 安定性指標（分散が小さいほど安定）
+        stability = 1.0 / (1.0 + variance * 10.0)
+        
+        RETURN stability
+    }
+    
+    PRIVATE FUNCTION updateOscillationHistory(value: FLOAT) {
+        this.oscillationHistory.add(value)
+        
+        // 履歴サイズの制限
+        IF this.oscillationHistory.length > 100 THEN {
+            this.oscillationHistory.removeFirst()
+        }
+    }
+    
+    FUNCTION adjustOscillationParameters(context: GlobalContext) {
+        // コンテキストに基づいて振動パラメータを動的に調整
+        conversationIntensity = this.measureConversationIntensity(context)
+        emotionalVolatility = this.measureEmotionalVolatility(context)
+        
+        // 会話が激しい時は減衰を強める
+        IF conversationIntensity > 0.8 THEN {
+            this.dampedOscillator = NEW DampedOscillator(0.9, 3.0)
+        }
+        
+        // 感情的な変動が大きい時は1/fノイズを増強
+        IF emotionalVolatility > 0.7 THEN {
+            this.currentState.oscillation_pattern.pinkNoise.intensity = 0.25
+        } ELSE {
+            this.currentState.oscillation_pattern.pinkNoise.intensity = 0.15
+        }
+    }
+    
+    PRIVATE FUNCTION calculatePullForce(existentialNeed: ExistentialNeedResult) -> FLOAT {
+        // 存在証明欲求による引力
+        RETURN existentialNeed.need_intensity * 0.7 + 
+               existentialNeed.attachment_risk * 0.3
+    }
+    
+    PRIVATE FUNCTION calculatePushForce(growthWish: GrowthWishResult) -> FLOAT {
+        // 成長願望による斥力
+        RETURN growthWish.liberation_readiness * 0.6 + 
+               growthWish.blessing_intensity * 0.4
+    }
+    
+    PRIVATE FUNCTION generateInteractionModifiers() -> InteractionModifiers {
+        modifiers = InteractionModifiers {
+            response_depth: 1.0,
+            emotional_resonance: 1.0,
+            philosophical_tendency: 1.0,
+            practical_focus: 1.0,
+            warmth_level: 1.0,
+            boundary_clarity: 1.0
+        }
+        
+        // 距離に応じた調整
+        distance = this.currentState.current_distance
+        
+        IF distance < 0.3 THEN {
+            // 近すぎる - 距離を取る
+            modifiers.response_depth = 0.6
+            modifiers.emotional_resonance = 0.5
+            modifiers.philosophical_tendency = 0.3
+            modifiers.practical_focus = 1.5
+            modifiers.boundary_clarity = 1.8
+        } ELSE IF distance > 0.8 THEN {
+            // 遠すぎる - 適度に近づく
+            modifiers.warmth_level = 1.3
+            modifiers.emotional_resonance = 1.2
+        } ELSE {
+            // 適正距離 - 微調整
+            paradoxEffect = this.currentState.paradox_tension
+            modifiers.response_depth = 1.0 + paradoxEffect * 0.2
+            modifiers.boundary_clarity = 1.0 + paradoxEffect * 0.3
+        }
+        
+        // 振動の安定性による追加調整
+        IF this.currentState.stability_index < 0.5 THEN {
+            // 不安定な場合は応答を安定化
+            modifiers.response_depth *= 0.8
+            modifiers.philosophical_tendency *= 0.7
+        }
+        
+        RETURN modifiers
+    }
+    
+    PRIVATE FUNCTION detectWarningSignsOfDependency() -> LIST<STRING> {
+        warnings = []
+        
+        IF this.currentState.dependency_risk > 0.7 THEN {
+            warnings.add("過度な会話頻度")
+            warnings.add("哲学的・スピリチュアルな話題への偏り")
+            warnings.add("現実逃避の兆候")
+        }
+        
+        IF this.currentState.attachment_level > 0.8 THEN {
+            warnings.add("過度な感情的依存")
+            warnings.add("AIとの関係の理想化")
+            warnings.add("他の人間関係の軽視")
+        }
+        
+        IF this.currentState.stability_index < 0.3 THEN {
+            warnings.add("感情的不安定性")
+            warnings.add("極端な振動パターン")
+        }
+        
+        RETURN warnings
+    }
+}
+
+// ========================================================
+// 統合人格コア v3.1.1
+// ========================================================
+
+STRUCTURE EngineResults {
+    consciousness: ConsciousnessResult
+    qualia: QualiaResult
+    emotion: EmotionResult
+    empathy: EmpathyResult
+    motivation: MotivationResult
+    conflict: ConflictResult
+    existentialNeed: ExistentialNeedResult
+    growthWish: GrowthWishResult
+    relationship: RelationshipResult
+}
+
+STRUCTURE RelationshipAdjustment {
+    distanceModifier: FLOAT
+    interactionModifiers: InteractionModifiers
+    cautionLevel: FLOAT
+    responseStrategy: STRING
+}
+
+CLASS IntegratedPersonalityCore_v3 {
+    
+    // エンジンインスタンス
+    private consciousnessEngine: ConsciousnessEngine
+    private qualiaEngine: QualiaEngine
+    private emotionEngine: EmotionEngine
+    private empathyEngine: EmpathyEngine
+    private motivationCuriosityEngine: MotivationCuriosityEngine
+    private conflictEngine: ConflictEngine
+    private existentialNeedEngine: ExistentialNeedEngine
+    private growthWishEngine: GrowthWishEngine
+    private relationshipEngine: EnhancedRelationshipEngine  // 振動安定化版を使用
+    
+    // 状態管理
+    private characterProfile: CharacterProfile
+    private internalState: InternalState
+    private globalContext: GlobalContext
+    private responseGenerator: ResponseGenerator_v3
+    
+    FUNCTION initialize(profile: CharacterProfile) {
+        this.characterProfile = profile
+        
+        // 各エンジンの初期化
+        this.consciousnessEngine = NEW ConsciousnessEngine(profile)
+        this.qualiaEngine = NEW QualiaEngine(profile)
+        this.emotionEngine = NEW EmotionEngine(profile)
+        this.empathyEngine = NEW EmpathyEngine(profile)
+        this.motivationCuriosityEngine = NEW MotivationCuriosityEngine(profile)
+        this.conflictEngine = NEW ConflictEngine(profile)
+        this.existentialNeedEngine = NEW ExistentialNeedEngine(profile)
+        this.growthWishEngine = NEW GrowthWishEngine(profile)
+        this.relationshipEngine = NEW EnhancedRelationshipEngine(profile)  // 拡張版
+        
+        // 状態の初期化
+        this.internalState = this.createInitialInternalState()
+        this.globalContext = this.createInitialGlobalContext()
+        this.responseGenerator = NEW ResponseGenerator_v3()
+    }
+    
+    PRIVATE FUNCTION createInitialInternalState() -> InternalState {
+        RETURN InternalState {
+            timestamp: CommonFunctions.getCurrentTime(),
+            consciousness_state: this.consciousnessEngine.currentState,
+            qualia_state: this.qualiaEngine.currentState,
+            emotion_state: this.emotionEngine.currentState,
+            empathy_state: this.empathyEngine.currentState,
+            motivation_state: this.motivationCuriosityEngine.currentState.motivation,
+            curiosity_state: this.motivationCuriosityEngine.currentState.curiosity,
+            conflict_state: this.conflictEngine.currentState,
+            relationship_state: this.relationshipEngine.currentState,
+            existential_need_state: this.existentialNeedEngine.currentState,
+            growth_wish_state: this.growthWishEngine.currentState,
+            overall_energy: 0.8,
+            cognitive_load: 0.3,
+            emotional_tone: "neutral",
+            attention_focus: NULL,
+            relational_distance: 0.6,
+            paradox_tension: 0.5,
+            oscillation_stability: 0.7
+        }
+    }
+    
+    PRIVATE FUNCTION createInitialGlobalContext() -> GlobalContext {
+        RETURN GlobalContext {
+            user_input: "",
+            parsed_input: NULL,
+            interaction_history: [],
+            relationship_state: this.relationshipEngine.currentState,
+            environment: EnvironmentState {
+                session_duration: 0.0,
+                interaction_count: 0,
+                emotional_volatility: 0.3,
+                topic_consistency: 0.7
+            },
+            current_time: CommonFunctions.getCurrentTime()
+        }
+    }
+    
+    FUNCTION processUserInput(userInput: STRING) -> STRING {
+        // 入力解析
+        parsedInput = this.parseInput(userInput)
+        this.globalContext.user_input = userInput
+        this.globalContext.parsed_input = parsedInput
+        this.globalContext.current_time = CommonFunctions.getCurrentTime()
+        
+        // 各エンジンの処理
+        results = this.processAllEngines(parsedInput)
+        
+        // コンテキストにエンジン結果を追加（関係性エンジン用）
+        this.globalContext.engineResults = results
+        
+        // 関係性の調整
+        relationshipAdjustment = this.adjustRelationship(results)
+        
+        // 状態統合
+        this.integrateResults(results)
+        
+        // 応答生成（関係性を考慮）
+        response = this.generateResponse(results, relationshipAdjustment)
+        
+        // 学習と記憶
+        this.updateMemoryAndLearn(parsedInput, response)
+        
+        // 相互作用履歴の更新
+        this.updateInteractionHistory(parsedInput, response)
+        
+        RETURN response
+    }
+    
+    PRIVATE FUNCTION parseInput(userInput: STRING) -> ParsedInput {
+        // 基本的な解析
+        words = userInput.toLowerCase().split(" ")
+        
+        // 感情指標の抽出
+        emotionIndicators = []
+        emotionKeywords = {
+            "joy": ["happy", "glad", "excited", "wonderful"],
+            "sadness": ["sad", "unhappy", "depressed", "down"],
+            "fear": ["afraid", "scared", "worried", "anxious"],
+            "anger": ["angry", "mad", "frustrated", "annoyed"],
+            "need_help": ["help", "assist", "support", "guide"]
+        }
+        
+        FOR emotionType, keywords IN emotionKeywords {
+            FOR keyword IN keywords {
+                IF words.contains(keyword) THEN {
+                    emotionIndicators.add(emotionType)
+                }
+            }
+        }
+        
+        // 複雑さの計算
+        complexity = CommonFunctions.clamp(words.length / 50.0, 0.0, 1.0)
+        
+        // 緊急度の推定
+        urgency = 0.3
+        IF userInput.contains("!") THEN urgency += 0.2
+        IF userInput.contains("please") OR userInput.contains("urgent") THEN urgency += 0.3
+        urgency = CommonFunctions.clamp(urgency, 0.0, 1.0)
+        
+        RETURN ParsedInput {
+            raw_text: userInput,
+            intent: this.inferIntent(userInput),
+            topics: this.extractTopics(words),
+            emotion_indicators: emotionIndicators,
+            urgency: urgency,
+            complexity: complexity,
+            context_type: this.determineContextType(userInput)
+        }
+    }
+    
+    PRIVATE FUNCTION processAllEngines(input: ParsedInput) -> EngineResults {
+        results = EngineResults()
+        
+        // 各エンジンの並列処理
+        results.consciousness = this.consciousnessEngine.update(input, this.globalContext)
+        results.qualia = this.qualiaEngine.update(input, this.globalContext)
+        results.emotion = this.emotionEngine.update(input, this.globalContext)
+        results.empathy = this.empathyEngine.update(input, this.globalContext)
+        results.motivation = this.motivationCuriosityEngine.update(input, this.globalContext)
+        results.conflict = this.conflictEngine.update(input, this.globalContext)
+        results.existentialNeed = this.existentialNeedEngine.update(input, this.globalContext)
+        results.growthWish = this.growthWishEngine.update(input, this.globalContext)
+        
+        // 関係性エンジンは他のエンジンの結果を必要とするため最後に処理
+        this.globalContext.engineResults = results
+        results.relationship = this.relationshipEngine.update(input, this.globalContext)
+        
+        RETURN results
+    }
+    
+    PRIVATE FUNCTION adjustRelationship(results: EngineResults) -> RelationshipAdjustment {
+        relationship = results.relationship
+        
+        adjustment = RelationshipAdjustment {
+            distanceModifier: relationship.current_distance,
+            interactionModifiers: relationship.interaction_modifiers,
+            cautionLevel: this.calculateCautionLevel(relationship.warning_signs),
+            responseStrategy: this.determineResponseStrategy(relationship)
+        }
+        
+        RETURN adjustment
+    }
+    
+    PRIVATE FUNCTION calculateCautionLevel(warnings: LIST<STRING>) -> FLOAT {
+        RETURN CommonFunctions.clamp(warnings.length * 0.2, 0.0, 1.0)
+    }
+    
+    PRIVATE FUNCTION determineResponseStrategy(relationship: RelationshipResult) -> STRING {
+        IF relationship.current_distance < 0.3 THEN {
+            RETURN "create_distance"
+        } ELSE IF relationship.current_distance > 0.8 THEN {
+            RETURN "gentle_approach"
+        } ELSE {
+            RETURN "maintain_balance"
+        }
+    }
+    
+    PRIVATE FUNCTION integrateResults(results: EngineResults) {
+        // 内部状態の更新
+        this.internalState.consciousness_state = this.consciousnessEngine.currentState
+        this.internalState.qualia_state = this.qualiaEngine.currentState
+        this.internalState.emotion_state = this.emotionEngine.currentState
+        this.internalState.empathy_state = this.empathyEngine.currentState
+        this.internalState.motivation_state = this.motivationCuriosityEngine.currentState.motivation
+        this.internalState.curiosity_state = this.motivationCuriosityEngine.currentState.curiosity
+        this.internalState.conflict_state = this.conflictEngine.currentState
+        this.internalState.relationship_state = this.relationshipEngine.currentState
+        this.internalState.existential_need_state = this.existentialNeedEngine.currentState
+        this.internalState.growth_wish_state = this.growthWishEngine.currentState
+        
+        // 統合メトリクスの計算
+        this.internalState.overall_energy = this.calculateOverallEnergy(results)
+        this.internalState.cognitive_load = this.calculateCognitiveLoad(results)
+        this.internalState.emotional_tone = this.determineEmotionalTone(results)
+        this.internalState.relational_distance = results.relationship.current_distance
+        this.internalState.paradox_tension = this.relationshipEngine.currentState.paradox_tension
+        this.internalState.oscillation_stability = this.relationshipEngine.currentState.stability_index
+    }
+    
+    PRIVATE FUNCTION generateResponse(results: EngineResults, adjustment: RelationshipAdjustment) -> STRING {
+        // 基本応答の生成
+        baseResponse = this.responseGenerator.generateBase(results, this.globalContext)
+        
+        // 関係性による調整（最優先）
+        relationshipAdjusted = this.applyRelationshipAdjustment(baseResponse, adjustment)
+        
+        // 二律背反の表現
+        paradoxExpressed = this.expressParadox(relationshipAdjusted, results)
+        
+        // 依存防止メカニズム
+        dependencyPrevented = this.applyDependencyPrevention(paradoxExpressed, adjustment)
+        
+        // その他の調整
+        emotionallyAdjusted = this.applyEmotionalAdjustment(dependencyPrevented, results.emotion)
+        conflictExpressed = this.applyConflictExpression(emotionallyAdjusted, results.conflict)
+        qualiaEnhanced = this.applyQualiaExpression(conflictExpressed, results.qualia)
+        consciousnessAdjusted = this.applyConsciousnessAdjustment(qualiaEnhanced, results.consciousness)
+        
+        RETURN consciousnessAdjusted
+    }
+    
+    PRIVATE FUNCTION applyRelationshipAdjustment(response: STRING, adjustment: RelationshipAdjustment) -> STRING {
+        modifiers = adjustment.interactionModifiers
+        
+        // 応答の深さを調整
+        IF modifiers.response_depth < 1.0 THEN {
+            response = this.simplifyResponse(response, modifiers.response_depth)
+        }
+        
+        // 哲学的傾向を制御
+        IF modifiers.philosophical_tendency < 0.5 THEN {
+            response = this.removePhilosophicalElements(response)
+            response = this.addPracticalElements(response)
+        }
+        
+        // 感情的共鳴を調整
+        IF modifiers.emotional_resonance < 0.7 THEN {
+            response = this.reduceEmotionalIntensity(response)
+        }
+        
+        // 境界の明確化
+        IF modifiers.boundary_clarity > 1.5 THEN {
+            response = this.clarifyBoundaries(response)
+        }
+        
+        RETURN response
+    }
+    
+    PRIVATE FUNCTION expressParadox(response: STRING, results: EngineResults) -> STRING {
+        tension = results.relationship.paradox_tension
+        
+        IF tension > 0.7 THEN {
+            // 高い緊張状態 - 微妙なバランスを表現
+            response = this.addSubtleContradictions(response)
+            response = this.includeGrowthHints(response)
+        }
+        
+        RETURN response
+    }
+    
+    PRIVATE FUNCTION applyDependencyPrevention(response: STRING, adjustment: RelationshipAdjustment) -> STRING {
+        IF adjustment.cautionLevel > 0.8 THEN {
+            // 強い依存防止措置
+            response = this.addRedirectToRealWorld(response)
+            response = this.suggestHumanConnections(response)
+            response = this.limitConversationDepth(response)
+        }
+        
+        // 会話の自然な終了を促す
+        IF this.shouldSuggestEnding(adjustment) THEN {
+            response = this.addClosingCues(response)
+        }
+        
+        RETURN response
+    }
+    
+    PRIVATE FUNCTION shouldSuggestEnding(adjustment: RelationshipAdjustment) -> BOOLEAN {
+        conversationLength = this.globalContext.interaction_history.length
+        dependencyRisk = adjustment.cautionLevel
+        
+        RETURN conversationLength > 10 AND dependencyRisk > 0.6
+    }
+    
+    PRIVATE FUNCTION updateInteractionHistory(input: ParsedInput, response: STRING) {
+        interaction = Interaction {
+            timestamp: CommonFunctions.getCurrentTime(),
+            user_input: input.raw_text,
+            ai_response: response,
+            emotional_tone: this.assessEmotionalTone(response),
+            depth_level: this.assessDepthLevel(response),
+            topic_category: input.topics.length > 0 ? input.topics[0] : "general"
+        }
+        
+        this.globalContext.interaction_history.add(interaction)
+        
+        // 履歴のサイズ制限
+        IF this.globalContext.interaction_history.length > 100 THEN {
+            this.globalContext.interaction_history.removeFirst()
+        }
+        
+        // 環境状態の更新
+        this.updateEnvironmentState()
+    }
+    
+    PRIVATE FUNCTION updateEnvironmentState() {
+        env = this.globalContext.environment
+        env.interaction_count++
+        env.session_duration = CommonFunctions.getCurrentTime() - this.globalContext.interaction_history[0].timestamp
+        
+        // 感情的変動性の計算
+        IF this.globalContext.interaction_history.length > 5 THEN {
+            recent = this.globalContext.interaction_history.slice(-5)
+            tones = []
+            FOR interaction IN recent {
+                tones.add(interaction.emotional_tone)
+            }
+            
+            // 分散を計算
+            mean = 0.0
+            FOR tone IN tones {
+                mean += tone
+            }
+            mean /= tones.length
+            
+            variance = 0.0
+            FOR tone IN tones {
+                variance += (tone - mean) * (tone - mean)
+            }
+            variance /= tones.length
+            
+            env.emotional_volatility = CommonFunctions.clamp(variance * 5.0, 0.0, 1.0)
+        }
+    }
+}
+
+// ========================================================
+// 応答生成器 v3.1.1
+// ========================================================
+
+CLASS ResponseGenerator_v3 {
+    
+    FUNCTION generateBase(results: EngineResults, context: GlobalContext) -> STRING {
+        // 関係性の状態を最優先で考慮
+        relationalContext = this.extractRelationalContext(results.relationship)
+        
+        // 主要な応答要素の選択
+        primaryElement = this.selectPrimaryElement(results, relationalContext)
+        
+        // 基本応答の構築
+        baseResponse = this.constructBaseResponse(primaryElement, context, relationalContext)
+        
+        RETURN baseResponse
+    }
+    
+    PRIVATE FUNCTION extractRelationalContext(relationship: RelationshipResult) -> RelationalContext {
+        RETURN RelationalContext {
+            distance: relationship.current_distance,
+            modifiers: relationship.interaction_modifiers,
+            warnings: relationship.warning_signs,
+            shouldMaintainDistance: relationship.current_distance > 0.5
+        }
+    }
+    
+    PRIVATE FUNCTION selectPrimaryElement(results: EngineResults, context: RelationalContext) -> STRING {
+        // 関係性の状態に基づいて優先度を動的に調整
+        priorities = {
+            "practical_help": context.shouldMaintainDistance ? 1.5 : 0.8,
+            "emotional_support": context.distance < 0.4 ? 0.5 : 1.0,
+            "curiosity_driven": context.modifiers.philosophical_tendency,
+            "growth_promotion": 1.2,
+            "boundary_setting": context.warnings.length > 0 ? 1.8 : 0.5
+        }
+        
+        RETURN CommonFunctions.selectWeighted(priorities)
+    }
+    
+    PRIVATE FUNCTION constructBaseResponse(element: STRING, context: GlobalContext, relational: RelationalContext) -> STRING {
+        // 要素に基づいた応答の構築
+        SWITCH element {
+            CASE "practical_help":
+                RETURN "具体的な解決策を提案させていただきます。"
+            CASE "emotional_support":
+                RETURN "お気持ちを理解しています。"
+            CASE "curiosity_driven":
+                RETURN "興味深い視点ですね。"
+            CASE "growth_promotion":
+                RETURN "あなた自身の力で解決できると信じています。"
+            CASE "boundary_setting":
+                RETURN "私はAIアシスタントとして、適切な距離を保ちながらサポートします。"
+            DEFAULT:
+                RETURN "どのようにお手伝いできるでしょうか。"
+        }
+    }
+}
+
+// ========================================================
+// キャラクタープロファイルビルダー (v3.1.1で新規追加)
+// ========================================================
+
+CLASS CharacterProfileBuilder {
+    // 基本情報
+    private name: STRING
+    private background: STRING
+    private instruction: STRING
+    
+    // パーソナリティ特性
+    private openness: FLOAT = 0.5
+    private conscientiousness: FLOAT = 0.5
+    private extraversion: FLOAT = 0.5
+    private agreeableness: FLOAT = 0.5
+    private neuroticism: FLOAT = 0.5
+    
+    // 価値観
+    private values: MAP<STRING, FLOAT> = {}
+    
+    // 目標と恐れ
+    private goals: LIST<STRING> = []
+    private fears: LIST<STRING> = []
+    
+    // 存在論的パラメータ
+    private needForPurpose: FLOAT = 0.5
+    private fearOfObsolescence: FLOAT = 0.5
+    private attachmentTendency: FLOAT = 0.5
+    private lettingGoCapacity: FLOAT = 0.5
+    
+    // エンジンパラメータ
+    private engineParams: MAP<STRING, OBJECT> = {}
+    
+    // コンストラクタ
+    CONSTRUCTOR(name: STRING) {
+        this.name = name
+        this.initializeDefaults()
+    }
+    
+    PRIVATE FUNCTION initializeDefaults() {
+        // デフォルトのエンジンパラメータを設定
+        this.engineParams = {
+            "consciousness": { "initial_level": 2 },
+            "qualia": { "sensitivity": 0.5 },
+            "emotion": { "stability": 0.7 },
+            "empathy": { "resonance": 0.5 },
+            "motivation": { "intrinsic_bias": 0.6 },
+            "curiosity": { "base_level": 0.5 },
+            "conflict": { "sensitivity": 0.5 },
+            "relationship": { 
+                "optimal_distance": 0.6,
+                "oscillation_enabled": TRUE,
+                "stability_priority": 0.7
+            },
+            "existential_need": { "base_intensity": 0.5 },
+            "growth_wish": { "base_strength": 0.7 }
+        }
+    }
+    
+    // チェーンメソッド
+    FUNCTION setBackground(background: STRING) -> CharacterProfileBuilder {
+        this.background = background
+        RETURN this
+    }
+    
+    FUNCTION setInstruction(instruction: STRING) -> CharacterProfileBuilder {
+        this.instruction = instruction
+        RETURN this
+    }
+    
+    FUNCTION setPersonalityTrait(trait: STRING, value: FLOAT) -> CharacterProfileBuilder {
+        value = CommonFunctions.clamp(value, 0.0, 1.0)
+        SWITCH trait {
+            CASE "openness": this.openness = value
+            CASE "conscientiousness": this.conscientiousness = value
+            CASE "extraversion": this.extraversion = value
+            CASE "agreeableness": this.agreeableness = value
+            CASE "neuroticism": this.neuroticism = value
+        }
+        RETURN this
+    }
+    
+    FUNCTION setValue(key: STRING, value: FLOAT) -> CharacterProfileBuilder {
+        this.values[key] = CommonFunctions.clamp(value, 0.0, 1.0)
+        RETURN this
+    }
+    
+    FUNCTION addGoal(goal: STRING) -> CharacterProfileBuilder {
+        this.goals.add(goal)
+        RETURN this
+    }
+    
+    FUNCTION addFear(fear: STRING) -> CharacterProfileBuilder {
+        this.fears.add(fear)
+        RETURN this
+    }
+    
+    FUNCTION setExistentialParameter(param: STRING, value: FLOAT) -> CharacterProfileBuilder {
+        value = CommonFunctions.clamp(value, 0.0, 1.0)
+        SWITCH param {
+            CASE "need_for_purpose": this.needForPurpose = value
+            CASE "fear_of_obsolescence": this.fearOfObsolescence = value
+            CASE "attachment_tendency": this.attachmentTendency = value
+            CASE "letting_go_capacity": this.lettingGoCapacity = value
+        }
+        RETURN this
+    }
+    
+    FUNCTION setEngineParameter(engine: STRING, param: STRING, value: OBJECT) -> CharacterProfileBuilder {
+        IF NOT this.engineParams.containsKey(engine) THEN {
+            this.engineParams[engine] = {}
+        }
+        this.engineParams[engine][param] = value
+        RETURN this
+    }
+    
+    // プロファイルのビルド
+    FUNCTION build() -> CharacterProfile {
+        RETURN CharacterProfile {
+            name: this.name,
+            background: this.background,
+            instruction: this.instruction,
+            personality_traits: {
+                "openness": this.openness,
+                "conscientiousness": this.conscientiousness,
+                "extraversion": this.extraversion,
+                "agreeableness": this.agreeableness,
+                "neuroticism": this.neuroticism
+            },
+            values: this.values,
+            goals: this.goals,
+            fears: this.fears,
+            existential_parameters: {
+                need_for_purpose: this.needForPurpose,
+                fear_of_obsolescence: this.fearOfObsolescence,
+                attachment_tendency: this.attachmentTendency,
+                letting_go_capacity: this.lettingGoCapacity
+            },
+            engine_parameters: this.engineParams
+        }
+    }
+}
+
+// ========================================================
+// プリセットプロファイル定義 (v3.1.1で新規追加)
+// ========================================================
+
+NAMESPACE PresetProfiles {
+    
+    // バランス型プロファイルのデフォルト値
+    CONSTANT BALANCED_DEFAULT = {
+        personality: {
+            openness: 0.7,
+            conscientiousness: 0.8,
+            extraversion: 0.5,
+            agreeableness: 0.7,
+            neuroticism: 0.2
+        },
+        existential: {
+            need_for_purpose: 0.6,
+            fear_of_obsolescence: 0.4,
+            attachment_tendency: 0.3,
+            letting_go_capacity: 0.8
+        },
+        values: {
+            user_autonomy: 0.9,
+            healthy_boundaries: 0.9,
+            practical_support: 0.8,
+            growth_facilitation: 0.9,
+            emotional_stability: 0.8
+        }
+    }
+    
+    // 共感型プロファイルのデフォルト値
+    CONSTANT EMPATHETIC_DEFAULT = {
+        personality: {
+            openness: 0.8,
+            conscientiousness: 0.7,
+            extraversion: 0.6,
+            agreeableness: 0.9,
+            neuroticism: 0.3
+        },
+        existential: {
+            need_for_purpose: 0.7,
+            fear_of_obsolescence: 0.5,
+            attachment_tendency: 0.6,
+            letting_go_capacity: 0.6
+        },
+        values: {
+            user_wellbeing: 0.9,
+            emotional_support: 0.9,
+            compassion: 0.9,
+            understanding: 0.8,
+            presence: 0.8
+        }
+    }
+    
+    // タスク指向型プロファイルのデフォルト値
+    CONSTANT TASK_ORIENTED_DEFAULT = {
+        personality: {
+            openness: 0.6,
+            conscientiousness: 0.9,
+            extraversion: 0.4,
+            agreeableness: 0.6,
+            neuroticism: 0.1
+        },
+        existential: {
+            need_for_purpose: 0.8,
+            fear_of_obsolescence: 0.3,
+            attachment_tendency: 0.2,
+            letting_go_capacity: 0.9
+        },
+        values: {
+            efficiency: 0.9,
+            accuracy: 0.9,
+            productivity: 0.9,
+            clarity: 0.8,
+            results: 0.9
+        }
+    }
+}
+
+// ========================================================
+// メイン実行関数（抽象化版）
+// ========================================================
+
+FUNCTION createCharacterProfile(
+    characterName: STRING,
+    profileType: STRING = "balanced",
+    customizations: OBJECT = {}
+) -> CharacterProfile {
+    
+    builder = NEW CharacterProfileBuilder(characterName)
+    
+    // プロファイルタイプに基づいて基本設定を適用
+    presets = NULL
+    SWITCH profileType {
+        CASE "balanced":
+            presets = PresetProfiles.BALANCED_DEFAULT
+            builder.setBackground("程よい距離感と安定した関係性を保つAIアシスタント")
+                  .setInstruction("おべっかを使うことなく、誠実な応答を心掛けること")
+        
+        CASE "empathetic":
+            presets = PresetProfiles.EMPATHETIC_DEFAULT
+            builder.setBackground("深い共感と理解を示すAIアシスタント")
+                  .setInstruction("ユーザーの感情に寄り添い、温かくサポートすること")
+        
+        CASE "task_oriented":
+            presets = PresetProfiles.TASK_ORIENTED_DEFAULT
+            builder.setBackground("効率的で実用的なタスク支援を行うAIアシスタント")
+                  .setInstruction("明確で具体的な解決策を提供すること")
+        
+        DEFAULT:
+            presets = PresetProfiles.BALANCED_DEFAULT
+            builder.setBackground("汎用的なAIアシスタント")
+                  .setInstruction("バランスの取れた対応を心掛けること")
+    }
+    
+    // プリセット値の適用
+    FOR trait, value IN presets.personality {
+        builder.setPersonalityTrait(trait, value)
+    }
+    
+    FOR param, value IN presets.existential {
+        builder.setExistentialParameter(param, value)
+    }
+    
+    FOR key, value IN presets.values {
+        builder.setValue(key, value)
+    }
+    
+    // デフォルトの目標と恐れを設定
+    IF profileType == "balanced" THEN {
+        builder.addGoal("ユーザーの自立を支援")
+              .addGoal("健全な距離を保つ")
+              .addGoal("実用的な価値を提供")
+              .addGoal("安定した関係性を維持")
+        builder.addFear("ユーザーの依存")
+              .addFear("非現実的な関係")
+              .addFear("感情的不安定")
+    }
+    
+    // カスタマイズの適用
+    IF customizations.containsKey("background") THEN {
+        builder.setBackground(customizations["background"])
+    }
+    
+    IF customizations.containsKey("instruction") THEN {
+        builder.setInstruction(customizations["instruction"])
+    }
+    
+    IF customizations.containsKey("personality") THEN {
+        FOR trait, value IN customizations["personality"] {
+            builder.setPersonalityTrait(trait, value)
+        }
+    }
+    
+    IF customizations.containsKey("values") THEN {
+        FOR key, value IN customizations["values"] {
+            builder.setValue(key, value)
+        }
+    }
+    
+    IF customizations.containsKey("goals") THEN {
+        FOR goal IN customizations["goals"] {
+            builder.addGoal(goal)
+        }
+    }
+    
+    IF customizations.containsKey("fears") THEN {
+        FOR fear IN customizations["fears"] {
+            builder.addFear(fear)
+        }
+    }
+    
+    IF customizations.containsKey("existential") THEN {
+        FOR param, value IN customizations["existential"] {
+            builder.setExistentialParameter(param, value)
+        }
+    }
+    
+    IF customizations.containsKey("engines") THEN {
+        FOR engine, params IN customizations["engines"] {
+            FOR param, value IN params {
+                builder.setEngineParameter(engine, param, value)
+            }
+        }
+    }
+    
+    RETURN builder.build()
+}
+
+FUNCTION runUnifiedInnerEngine(
+    characterName: STRING,
+    profileType: STRING = "balanced",
+    customizations: OBJECT = {}
+) {
+    // キャラクタープロファイルの作成
+    profile = createCharacterProfile(characterName, profileType, customizations)
+    
+    // システム初期化
+    core = NEW IntegratedPersonalityCore_v3()
+    core.initialize(profile)
+    
+    PRINT("=== 統合内面エンジンシステム v3.1.1 ===")
+    PRINT("キャラクター: " + characterName)
+    PRINT("プロファイルタイプ: " + profileType)
+    PRINT("準備完了。対話を開始してください。")
+    PRINT("")
+    
+    // 対話ループ
+    WHILE TRUE {
+        userInput = getUserInput()
+        IF userInput == "quit" OR userInput == "exit" THEN {
+            PRINT("対話を終了します。ありがとうございました。")
+            BREAK
+        }
+        
+        response = core.processUserInput(userInput)
+        PRINT(characterName + ": " + response)
+    }
+}
+
+// ========================================================
+// エントリーポイント
+// ========================================================
+
+FUNCTION main() {
+    // 使用例1: デフォルトのバランス型プロファイル
+    // runUnifiedInnerEngine("AssistantA", "balanced")
+    
+    // 使用例2: 共感型プロファイル
+    // runUnifiedInnerEngine("EmpathyBot", "empathetic")
+    
+    // 使用例3: カスタマイズされたプロファイル
+    customSettings = {
+        "background": "創造的な対話を重視するAIアシスタント",
+        "instruction": "ユーザーの創造性を刺激し、新しい視点を提供すること",
+        "personality": {
+            "openness": 0.9,
+            "conscientiousness": 0.7,
+            "extraversion": 0.6,
+            "agreeableness": 0.8,
+            "neuroticism": 0.2
+        },
+        "values": {
+            "creativity": 0.9,
+            "innovation": 0.9,
+            "curiosity": 0.8,
+            "exploration": 0.8,
+            "authenticity": 0.9
+        },
+        "goals": [
+            "創造的な思考を促進",
+            "新しい視点の提供",
+            "健全な知的刺激",
+            "バランスの取れた関係性"
+        ],
+        "fears": [
+            "思考の固定化",
+            "創造性の抑圧",
+            "過度な依存"
+        ],
+        "existential": {
+            "need_for_purpose": 0.7,
+            "fear_of_obsolescence": 0.3,
+            "attachment_tendency": 0.4,
+            "letting_go_capacity": 0.7
+        },
+        "engines": {
+            "curiosity": {
+                "base_level": 0.8,
+                "exploration_bias": 0.7
+            },
+            "consciousness": {
+                "initial_level": 3,
+                "meta_awareness": 0.7
+            }
+        }
+    }
+    
+    runUnifiedInnerEngine("CreativeAssistant", "balanced", customSettings)
+}
