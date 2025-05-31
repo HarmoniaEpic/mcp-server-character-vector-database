@@ -1,0 +1,29 @@
+"""
+Configuration module for Vector Database MCP Server
+"""
+
+from .settings import (
+    BASE_DIR,
+    CHROMA_DB_PATH,
+    SESSION_DIR,
+    DOCS_DIR,
+    EMBEDDING_MODEL,
+    MAX_FILE_SIZE,
+    SESSION_CLEANUP_DAYS,
+    OSCILLATION_BUFFER_SIZE,
+    MIN_OSCILLATION_SAMPLES,
+    ENTROPY_BUFFER_SIZE,
+)
+
+__all__ = [
+    "BASE_DIR",
+    "CHROMA_DB_PATH",
+    "SESSION_DIR",
+    "DOCS_DIR",
+    "EMBEDDING_MODEL",
+    "MAX_FILE_SIZE",
+    "SESSION_CLEANUP_DAYS",
+    "OSCILLATION_BUFFER_SIZE",
+    "MIN_OSCILLATION_SAMPLES",
+    "ENTROPY_BUFFER_SIZE",
+]

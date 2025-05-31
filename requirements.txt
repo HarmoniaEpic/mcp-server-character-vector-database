@@ -1,0 +1,23 @@
+# vector_database_mcp/requirements.txt
+# Main requirements file that includes all module-specific requirements
+
+# Core dependencies
+-r core/requirements.txt
+
+# Security module
+-r security/requirements.txt
+
+# Session management
+-r session/requirements.txt
+
+# Document handling
+-r document/requirements.txt
+
+# Oscillation analysis
+-r oscillation/requirements.txt
+
+# MCP server
+-r mcp/requirements.txt
+
+# Configuration module
+-r config/requirements.txt

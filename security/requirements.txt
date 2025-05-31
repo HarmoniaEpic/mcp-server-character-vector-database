@@ -1,0 +1,11 @@
+# vector_database_mcp/security/requirements.txt
+# Security module dependencies
+
+# Cryptography (for additional security features if needed in future)
+# cryptography==41.0.7
+
+# System information (for CPU detection)
+# psutil==5.9.7
+
+# Note: This module primarily uses Python standard library
+# No additional dependencies required at this time

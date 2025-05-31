@@ -1,0 +1,11 @@
+# vector_database_mcp/document/requirements.txt
+# Document handling dependencies
+
+# Markdown processing (optional, for enhanced features)
+# markdown==3.5.1
+
+# Text processing (optional, for enhanced features)
+# beautifulsoup4==4.12.2
+
+# Note: Basic document functionality uses only standard library
+# No additional dependencies required

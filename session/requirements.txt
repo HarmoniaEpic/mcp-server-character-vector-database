@@ -1,0 +1,5 @@
+# vector_database_mcp/session/requirements.txt
+# Session management dependencies
+
+# File handling is done with standard library
+# No additional dependencies required

@@ -1,0 +1,9 @@
+# vector_database_mcp/config/requirements.txt
+# Configuration module dependencies
+
+# Environment variable handling
+python-dotenv==1.0.0
+
+# Configuration validation (optional, for future use)
+# pydantic==2.5.3
+# pydantic-settings==2.1.0

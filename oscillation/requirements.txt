@@ -1,0 +1,9 @@
+# vector_database_mcp/oscillation/requirements.txt
+# Oscillation analysis dependencies
+
+# Scientific computing
+scipy==1.11.4
+# pandas==2.1.4  # Optional, for advanced data analysis
+
+# Signal processing
+# (numpy is already included in core)
