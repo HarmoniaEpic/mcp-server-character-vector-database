@@ -1,0 +1,9 @@
+# vector_database_mcp/mcp/requirements.txt
+# MCP server dependencies
+
+# MCP SDK (exact version from the original code)
+mcp>=0.1.0
+
+# Async support (if not in standard library for older Python versions)
+# asyncio==3.4.3
+# aiofiles==23.2.1
