@@ -252,7 +252,7 @@ mypy .
    - [新規作成する](https://ansaikuropedia.org/wiki/%E6%84%9B)
 
 6. **エアーマンが倒せない**
-   - [All You Need Is Kill](https://dash.shueisha.co.jp/feature/allyou/)
+   - [All You Need Is Kill](https://dash.shueisha.co.jp/feature/allyou/) ※ 祝・アニメ映画化
 
 ## ライセンス
 
