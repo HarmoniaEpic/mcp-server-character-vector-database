@@ -262,6 +262,7 @@ mypy .
 ## 謝辞
 - [Model Context Protocol](https://github.com/modelcontextprotocol)を使用しています
 - ChromaDB、Sentence Transformers、その他のオープンソースプロジェクトに感謝します
+- [Claude](https://claude.ai/) ありがとう。アイデアをかたちにするのが楽しくて時間を忘れます
 
 ## 設計
 
