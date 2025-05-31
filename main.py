@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config.logging import setup_logging
-from mcp.server import VectorDatabaseMCPServer
+from vdb_server.server import VectorDatabaseMCPServer
 
 # Test mode imports
 from security.entropy import SecureEntropySource
