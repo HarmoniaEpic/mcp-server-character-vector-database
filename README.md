@@ -1,4 +1,4 @@
-# MCP Server Character Vector Database
+# MCP Server the Character Vector Database
 
 エージェンティックなAIキャラクターの内部状態とユーザーの関係性をまとめて管理するすごいベクトルデータベースMCPすごいサーバー
 
