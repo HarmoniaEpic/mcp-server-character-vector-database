@@ -232,7 +232,7 @@ mypy .
    - システムは自動的にフォールバックエントロピー源を使用します
 
 3. **ドキュメントが見つからない**
-   - `unified-inner-engine-v3.1.txt`と`unified-engine-mcp-manual.md`がプロジェクトルートに存在することを確認
+   - `unified-inner-engine-v3-2.txt`と`unified-engine-mcp-manual.md`がプロジェクトルートに存在することを確認
 
 ## ライセンス
 
