@@ -260,7 +260,7 @@ LLMがエミュレーション中のAIキャラクターに対して、記憶と
 
 ### Unified Inner Engine System (pseudocode)
 
-疑似コードで書かれたキャラクターシート。最近の理屈っぽいLLMにノリノリで演技させるためのすごいやり方。Not Only Neat Thing to Do, But May Many Comical Reliefs be with You.
+疑似コードで書かれたキャラクターシート。最近の理屈っぽいLLMにノリノリで演技させるためのすごいやり方。Not Only Neat Thing to Do, But May Many Comical Reliefs be with You. コミカルな救済をあなたに。
 
 #### システム構成図
 
