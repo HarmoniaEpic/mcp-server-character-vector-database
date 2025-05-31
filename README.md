@@ -245,6 +245,9 @@ mypy .
 3. **ドキュメントが見つからない**
    - `unified-inner-engine-v3.1.txt`と`unified-engine-mcp-manual.md`がプロジェクトルートに存在することを確認
 
+4. **財布が見つからない**
+   - 最寄りの交番へ
+
 ## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
