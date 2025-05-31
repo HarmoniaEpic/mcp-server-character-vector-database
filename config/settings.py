@@ -3,6 +3,7 @@ Global settings and configuration management
 """
 
 import os
+import platform
 from pathlib import Path
 from typing import Optional
 
@@ -25,7 +26,13 @@ SESSION_DIR = os.getenv("SESSION_DIR", str(BASE_DIR / "session_states"))
 DOCS_DIR = Path(os.getenv("DOCS_DIR", str(PROJECT_ROOT)))
 
 # Model settings
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-mpnet-base-v2")
+# システムに応じてモデルを選択
+if platform.machine().startswith('arm'):
+    # Raspberry Pi用：軽量な多言語モデル
+    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+else:
+    # 通常のシステム用：高品質モデル
+    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-mpnet-base-v2")
 
 # Security settings
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
