@@ -246,10 +246,11 @@ mypy .
    - `unified-inner-engine-v3.1.txt`と`unified-engine-mcp-manual.md`がプロジェクトルートに存在することを確認
 
 4. **財布が見つからない**
-   - [最寄りの交番へ](https://sundaygx.com/work/1230/) ※ モンジュのデザイン大好き
+   - [最寄りの交番へ](https://sundaygx.com/work/1230/) ※ モンジュのデザインいいよね
 
 5. **愛が見つからない**
-   - [新規作成する](https://ansaikuropedia.org/wiki/%E6%84%9B)
+   - [新規作成する](https://ansaikuropedia.org/wiki/%E6%84%9B) ※ 私はコレで（下ネタへの）愛に目覚めました……それと会社も
+  
 
 6. **エアーマンが倒せない**
    - [All You Need Is Kill](https://dash.shueisha.co.jp/feature/allyou/) ※ 祝・アニメ映画化
