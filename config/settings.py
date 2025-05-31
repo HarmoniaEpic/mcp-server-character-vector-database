@@ -25,7 +25,7 @@ SESSION_DIR = os.getenv("SESSION_DIR", str(BASE_DIR / "session_states"))
 DOCS_DIR = Path(os.getenv("DOCS_DIR", str(PROJECT_ROOT)))
 
 # Model settings
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-mpnet-base-v2")
 
 # Security settings
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
