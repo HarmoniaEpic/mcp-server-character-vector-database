@@ -6,6 +6,12 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
 
+## ポエム（本当にポエムを書くやつがあるかバカモン）
+
+心の在処は人の間に。AI人間、いずれ間が抜け人となる。
+
+……なんかそんな感じのことをウルキオラ・シファーとか志波海燕とかが言ってた気がするようなそうでもないような。オサレ最高。
+
 ## 概要
 
 MCP Server Character Vector Databaseは、エージェンティックなAIキャラクターの複雑な内部状態、感情、関係性、記憶を管理するための包括的なすごいベクトルデータベースシステムです。MCPプロトコルを通じてAIアシスタントと統合します。すごい。
