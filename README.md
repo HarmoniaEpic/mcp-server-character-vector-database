@@ -470,7 +470,7 @@ stateDiagram-v2
 
 ### Unified Inner Engine System (pseudocode)
 
-疑似コードで書かれたキャラクターシート。最近の理屈っぽいLLMにノリノリで演技させるためのわりとひとつのすごいやり方。Not Only Neat Thing to Do, But May Many Comical Reliefs be with You. コミカルな救済をあなたに。
+疑似コードで書かれたキャラクターシート。最近の理屈っぽいLLMにノリノリで演技させるためのいわゆるひとつのすごいやり方。Not Only Neat Thing to Do, But May Many Comical Reliefs be with You. コミカルな救済をあなたに。
 
 #### システム構成図
 
