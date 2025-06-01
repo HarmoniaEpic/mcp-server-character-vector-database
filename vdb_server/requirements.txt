@@ -2,7 +2,7 @@
 # MCP server dependencies
 
 # MCP SDK (exact version from the original code)
-mcp>=0.1.0
+mcp>=1.9.2
 
 # Async support (if not in standard library for older Python versions)
 # asyncio==3.4.3
