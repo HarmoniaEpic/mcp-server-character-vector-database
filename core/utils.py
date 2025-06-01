@@ -10,30 +10,55 @@ from decimal import Decimal
 
 
 # ========================================================
+# NumPy型変換
+# ========================================================
+
+def convert_numpy_types(obj: Any) -> Any:
+    """
+    NumPy型を再帰的にPython標準型に変換
+    
+    Args:
+        obj: 変換するオブジェクト
+        
+    Returns:
+        Python標準型に変換されたオブジェクト
+    """
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, (np.bool_, np.bool8)):
+        return bool(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(v) for v in obj)
+    return obj
+
+
+# ========================================================
 # JSON Serialization with datetime support
 # ========================================================
 
-class EnhancedJSONEncoder(json.JSONEncoder):
-    """拡張JSONエンコーダー - NumPy型とdatetime対応"""
+class DateTimeEncoder(json.JSONEncoder):
+    """シンプルなdatetime対応エンコーダー"""
     
     def default(self, obj):
         # datetime処理
         if isinstance(obj, datetime):
             return obj.isoformat()
         
-        # NumPy配列処理
-        if isinstance(obj, np.ndarray):
+        # NumPy scalar処理
+        if hasattr(obj, 'item'):
+            return obj.item()
+        
+        # NumPy array処理
+        if hasattr(obj, 'tolist'):
             return obj.tolist()
-        
-        # NumPy数値型処理
-        if isinstance(obj, (np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
-            return int(obj)
-        
-        if isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
-            return float(obj)
-        
-        if isinstance(obj, (np.bool_, np.bool8)):
-            return bool(obj)
         
         # Decimal処理
         if isinstance(obj, Decimal):
@@ -65,20 +90,26 @@ def safe_json_dumps(obj: Any, **kwargs) -> str:
     Returns:
         JSON文字列
     """
-    # デフォルトでEnhancedJSONEncoderを使用
+    # デフォルトでensure_ascii=Falseを設定（マルチバイト対応）
+    if 'ensure_ascii' not in kwargs:
+        kwargs['ensure_ascii'] = False
+    
+    # デフォルトでDateTimeEncoderを使用
     if 'cls' not in kwargs:
-        kwargs['cls'] = EnhancedJSONEncoder
+        kwargs['cls'] = DateTimeEncoder
     
     # 循環参照対策
     if 'check_circular' not in kwargs:
         kwargs['check_circular'] = True
     
     try:
-        return json.dumps(obj, **kwargs)
+        # NumPy型を事前に変換
+        converted_obj = convert_numpy_types(obj)
+        return json.dumps(converted_obj, **kwargs)
     except Exception as e:
         # フォールバック：基本的な型のみを含むデータに変換
         cleaned_obj = clean_for_json(obj)
-        return json.dumps(cleaned_obj, cls=EnhancedJSONEncoder, **kwargs)
+        return json.dumps(cleaned_obj, cls=DateTimeEncoder, **kwargs)
 
 
 def clean_for_json(obj: Any, max_depth: int = 10, current_depth: int = 0) -> Any:
@@ -200,6 +231,9 @@ def filter_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
         if value is None:
             continue
         
+        # NumPy型を事前に変換
+        value = convert_numpy_types(value)
+        
         # 値の型を適切に変換
         filtered_value = safe_metadata_value(value)
         
@@ -225,20 +259,19 @@ def safe_metadata_value(value: Any, default_value: Any = None) -> Any:
         return default_value
     
     # ブール値
-    if isinstance(value, (bool, np.bool_, np.bool8)):
+    if isinstance(value, bool):
         return bool(value)
     
-    # 整数（NumPy整数型含む）
-    if isinstance(value, (int, np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+    # 整数
+    if isinstance(value, int):
         return int(value)
     
-    # 浮動小数点数（NumPy浮動小数点型含む）
-    if isinstance(value, (float, np.floating, np.float_, np.float16, np.float32, np.float64)):
-        val = float(value)
+    # 浮動小数点数
+    if isinstance(value, float):
         # NaN や Inf のチェック
-        if np.isnan(val) or np.isinf(val):
+        if np.isnan(value) or np.isinf(value):
             return 0.0
-        return val
+        return float(value)
     
     # 文字列
     if isinstance(value, str):
@@ -246,7 +279,7 @@ def safe_metadata_value(value: Any, default_value: Any = None) -> Any:
         return value if value else default_value
     
     # リストやタプル -> JSON文字列に変換
-    if isinstance(value, (list, tuple, np.ndarray)):
+    if isinstance(value, (list, tuple)):
         try:
             return safe_json_dumps(value)
         except:
