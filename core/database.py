@@ -34,6 +34,7 @@ from .utils import (
     safe_json_dumps,
     safe_json_loads,
     filter_metadata,
+    safe_metadata_value,
 )
 from .exceptions import (
     VectorDatabaseError,
@@ -199,7 +200,7 @@ class VectorDatabaseManager:
         
         # セキュアエントロピーで初期値を生成
         for _ in range(5):  # 最小限の初期値を生成
-            secure_oscillation = self.entropy_source.get_thermal_oscillation(0.3)
+            secure_oscillation = float(self.entropy_source.get_thermal_oscillation(0.3))
             buffer["values"].append(secure_oscillation)
             buffer["timestamps"].append(datetime.now())
         
@@ -258,7 +259,7 @@ class VectorDatabaseManager:
                 logger.info(f"Insufficient restored data ({len(buffer['values'])}), generating {shortage} supplementary values")
                 
                 for _ in range(shortage):
-                    secure_oscillation = self.entropy_source.get_thermal_oscillation(0.3)
+                    secure_oscillation = float(self.entropy_source.get_thermal_oscillation(0.3))
                     buffer["values"].append(secure_oscillation)
                     buffer["timestamps"].append(datetime.now())
                     restored_count += 1
@@ -287,9 +288,9 @@ class VectorDatabaseManager:
             logger.info(f"Supplementing {shortage} oscillation samples for session {session_id}")
             
             for _ in range(shortage):
-                secure_oscillation = self.entropy_source.get_thermal_oscillation(0.3)
-                pink_component = self.pink_noise_generator.generate_secure_pink_noise()
-                combined = secure_oscillation * 0.7 + pink_component * 0.3
+                secure_oscillation = float(self.entropy_source.get_thermal_oscillation(0.3))
+                pink_component = float(self.pink_noise_generator.generate_secure_pink_noise())
+                combined = float(secure_oscillation * 0.7 + pink_component * 0.3)
                 
                 buffer["values"].append(combined)
                 buffer["timestamps"].append(datetime.now())
@@ -300,19 +301,22 @@ class VectorDatabaseManager:
         embedding = self._generate_embedding(state_text)
         
         # メタデータの安全な構築
-        metadata = filter_metadata({
-            "id": session_state.id,
-            "session_id": session_state.session_id,
-            "character_id": session_state.character_id,
+        metadata = {
+            "id": str(session_state.id),
+            "session_id": str(session_state.session_id),
+            "character_id": str(session_state.character_id),
             "start_time": session_state.start_time.isoformat(),
             "last_update": session_state.last_update.isoformat(),
-            "interaction_count": session_state.interaction_count,
-            "internal_state_id": session_state.internal_state_id,
-            "relationship_state_id": session_state.relationship_state_id,
+            "interaction_count": int(session_state.interaction_count),
+            "internal_state_id": str(session_state.internal_state_id),
+            "relationship_state_id": str(session_state.relationship_state_id),
             "oscillation_history": safe_json_dumps(session_state.oscillation_history),
             "environment_state": safe_json_dumps(session_state.environment_state),
-            "active": session_state.active
-        })
+            "active": bool(session_state.active)
+        }
+        
+        # フィルタリングを適用
+        metadata = filter_metadata(metadata)
         
         self.collections[DataType.SESSION_STATE].add(
             embeddings=[embedding],
@@ -333,17 +337,17 @@ class VectorDatabaseManager:
             
             # セキュアエントロピーベースの新しい振動値を生成
             if pattern.secure_entropy_enabled:
-                secure_pink_noise = self.pink_noise_generator.generate_secure_pink_noise()
-                thermal_oscillation = self.entropy_source.get_thermal_oscillation(pattern.amplitude)
-                combined_oscillation = secure_pink_noise * 0.7 + thermal_oscillation * 0.3
+                secure_pink_noise = float(self.pink_noise_generator.generate_secure_pink_noise())
+                thermal_oscillation = float(self.entropy_source.get_thermal_oscillation(pattern.amplitude))
+                combined_oscillation = float(secure_pink_noise * 0.7 + thermal_oscillation * 0.3)
                 buffer["values"].append(combined_oscillation)
             else:
                 # パターンの履歴から値を追加
                 if pattern.history:
-                    buffer["values"].extend(pattern.history)
+                    buffer["values"].extend([float(v) for v in pattern.history])
                 else:
                     # フォールバック：基本的な振動値を生成
-                    fallback_oscillation = self.entropy_source.get_thermal_oscillation(pattern.amplitude)
+                    fallback_oscillation = float(self.entropy_source.get_thermal_oscillation(pattern.amplitude))
                     buffer["values"].append(fallback_oscillation)
             
             buffer["timestamps"].append(pattern.timestamp)
@@ -398,10 +402,10 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": profile_id,
-            "name": name,
-            "background": background,
-            "instruction": instruction,
+            "id": str(profile_id),
+            "name": str(name),
+            "background": str(background),
+            "instruction": str(instruction),
             "personality_traits": safe_json_dumps(personality_traits),
             "values": safe_json_dumps(values),
             "goals": safe_json_dumps(goals),
@@ -409,7 +413,7 @@ class VectorDatabaseManager:
             "existential_parameters": safe_json_dumps(existential_parameters),
             "engine_parameters": safe_json_dumps(engine_parameters),
             "timestamp": entry.timestamp.isoformat(),
-            "version": entry.version
+            "version": str(entry.version)
         })
         
         self.collections[DataType.CHARACTER_PROFILE].add(
@@ -467,7 +471,7 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": state_id,
+            "id": str(state_id),
             "timestamp": entry.timestamp.isoformat(),
             "consciousness_state": safe_json_dumps(entry.consciousness_state),
             "qualia_state": safe_json_dumps(entry.qualia_state),
@@ -479,13 +483,13 @@ class VectorDatabaseManager:
             "relationship_state": safe_json_dumps(entry.relationship_state),
             "existential_need_state": safe_json_dumps(entry.existential_need_state),
             "growth_wish_state": safe_json_dumps(entry.growth_wish_state),
-            "overall_energy": float(entry.overall_energy),
-            "cognitive_load": float(entry.cognitive_load),
+            "overall_energy": safe_metadata_value(entry.overall_energy, 0.5),
+            "cognitive_load": safe_metadata_value(entry.cognitive_load, 0.3),
             "emotional_tone": str(entry.emotional_tone),
             "attention_focus": safe_json_dumps(entry.attention_focus) if entry.attention_focus else "",
-            "relational_distance": float(entry.relational_distance),
-            "paradox_tension": float(entry.paradox_tension),
-            "oscillation_stability": float(entry.oscillation_stability),
+            "relational_distance": safe_metadata_value(entry.relational_distance, 0.6),
+            "paradox_tension": safe_metadata_value(entry.paradox_tension, 0.5),
+            "oscillation_stability": safe_metadata_value(entry.oscillation_stability, 0.7),
             "character_id": str(entry.character_id),
             "session_id": str(entry.session_id)
         })
@@ -565,7 +569,7 @@ class VectorDatabaseManager:
         # セキュアエントロピーベースの初期履歴生成
         if pattern_data.secure_entropy_enabled and not pattern_data.history:
             for _ in range(10):
-                secure_oscillation = self.entropy_source.get_thermal_oscillation(pattern_data.amplitude)
+                secure_oscillation = float(self.entropy_source.get_thermal_oscillation(pattern_data.amplitude))
                 pattern_data.history.append(secure_oscillation)
         
         entry = RelationshipStateEntry(
@@ -599,15 +603,15 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": state_id,
-            "attachment_level": float(attachment_level),
-            "optimal_distance": float(optimal_distance),
-            "current_distance": float(current_distance),
-            "paradox_tension": float(paradox_tension),
+            "id": str(state_id),
+            "attachment_level": safe_metadata_value(attachment_level, 0.5),
+            "optimal_distance": safe_metadata_value(optimal_distance, 0.5),
+            "current_distance": safe_metadata_value(current_distance, 0.5),
+            "paradox_tension": safe_metadata_value(paradox_tension, 0.5),
             "oscillation_pattern": safe_json_dumps(pattern_data.to_dict()),
-            "stability_index": float(stability_index),
-            "dependency_risk": float(dependency_risk),
-            "growth_potential": float(growth_potential),
+            "stability_index": safe_metadata_value(stability_index, 0.7),
+            "dependency_risk": safe_metadata_value(dependency_risk, 0.2),
+            "growth_potential": safe_metadata_value(growth_potential, 0.8),
             "timestamp": entry.timestamp.isoformat(),
             "character_id": str(entry.character_id),
             "session_id": str(entry.session_id)
@@ -661,9 +665,9 @@ class VectorDatabaseManager:
         if pattern.secure_entropy_enabled:
             enhanced_history = []
             for _ in range(20):  # より長い履歴
-                secure_oscillation = self.entropy_source.get_thermal_oscillation(pattern.amplitude)
-                pink_component = self.pink_noise_generator.generate_secure_pink_noise()
-                combined = secure_oscillation * 0.6 + pink_component * 0.4
+                secure_oscillation = float(self.entropy_source.get_thermal_oscillation(pattern.amplitude))
+                pink_component = float(self.pink_noise_generator.generate_secure_pink_noise())
+                combined = float(secure_oscillation * 0.6 + pink_component * 0.4)
                 enhanced_history.append(combined)
             pattern.history = enhanced_history
         
@@ -682,7 +686,7 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": pattern_id,
+            "id": str(pattern_id),
             "pattern_data": safe_json_dumps(pattern.to_dict()),
             "timestamp": pattern.timestamp.isoformat(),
             "character_id": str(self.active_character_id or ""),
@@ -732,9 +736,9 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": entropy_id,
+            "id": str(entropy_id),
             "entropy_value": int(entropy_value),
-            "normalized_value": float(normalized_value),
+            "normalized_value": safe_metadata_value(normalized_value, 0.5),
             "source_type": str(source_type),
             "quality_metrics": safe_json_dumps(quality_metrics),
             "timestamp": entry.timestamp.isoformat(),
@@ -762,14 +766,14 @@ class VectorDatabaseManager:
             entropy_val = self.entropy_source.get_secure_entropy(4)
             normalized_val = self.entropy_source.get_normalized_entropy()
             recent_entropy.append({
-                "raw_value": entropy_val,
-                "normalized": normalized_val
+                "raw_value": int(entropy_val),
+                "normalized": float(normalized_val)
             })
         
         # 統計計算
         normalized_values = [e["normalized"] for e in recent_entropy]
-        mean_entropy = np.mean(normalized_values)
-        std_entropy = np.std(normalized_values)
+        mean_entropy = float(np.mean(normalized_values))
+        std_entropy = float(np.std(normalized_values))
         
         return {
             "entropy_source_quality": quality,
@@ -875,11 +879,16 @@ class VectorDatabaseManager:
         if sid not in self.oscillation_buffer:
             return {"error": "No oscillation data"}
         
+        # NumPy配列の可能性があるのでリストに変換
+        values = self.oscillation_buffer[sid]["values"]
+        if isinstance(values, np.ndarray):
+            values = values.tolist()
+        else:
+            # 各要素も確実にfloat型に変換
+            values = [float(v) for v in values]
+        
         # 外部モジュールに計算を委譲
-        return calculate_oscillation_metrics(
-            self.oscillation_buffer[sid]["values"],
-            self.entropy_source
-        )
+        return calculate_oscillation_metrics(values, self.entropy_source)
     
     def add_conversation(self, user_input: str, ai_response: str, 
                         context: Dict[str, Any] = None,
@@ -893,6 +902,10 @@ class VectorDatabaseManager:
         # セキュアエントロピーベースの振動値生成（指定されていない場合）
         if oscillation_value is None:
             oscillation_value = self.entropy_source.get_thermal_oscillation(0.05)
+        
+        # NumPy float型の可能性があるので明示的に変換
+        oscillation_value = float(oscillation_value) if oscillation_value is not None else 0.0
+        relational_distance = float(relational_distance) if relational_distance is not None else 0.6
         
         entry = ConversationEntry(
             id=conversation_id,
@@ -923,13 +936,13 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築（修正版）
         metadata = {
-            "id": conversation_id,
-            "user_input": user_input,
-            "ai_response": ai_response,
+            "id": str(conversation_id),
+            "user_input": str(user_input),
+            "ai_response": str(ai_response),
             "timestamp": entry.timestamp.isoformat(),
             "context": safe_json_dumps(context or {}),
-            "oscillation_value": float(oscillation_value) if oscillation_value is not None else 0.0,
-            "relational_distance": float(relational_distance) if relational_distance is not None else 0.6
+            "oscillation_value": safe_metadata_value(oscillation_value, 0.0),
+            "relational_distance": safe_metadata_value(relational_distance, 0.6)
         }
         
         # オプション値の条件付き追加
@@ -945,7 +958,7 @@ class VectorDatabaseManager:
         if entry.session_id is not None:
             metadata["session_id"] = str(entry.session_id)
         
-        # None値のフィルタリング
+        # フィルタリングを適用
         metadata = filter_metadata(metadata)
         
         self.collections[DataType.CONVERSATION].add(
@@ -958,7 +971,7 @@ class VectorDatabaseManager:
         # 振動バッファに直接追加
         if self.active_session_id and oscillation_value is not None:
             buffer = self.oscillation_buffer[self.active_session_id]
-            buffer["values"].append(oscillation_value)
+            buffer["values"].append(float(oscillation_value))
             buffer["timestamps"].append(entry.timestamp)
         
         # セッションの相互作用カウントを更新
@@ -995,8 +1008,8 @@ class VectorDatabaseManager:
                 formatted_results.append({
                     "document": results["documents"][0][i],
                     "metadata": metadata,
-                    "distance": results["distances"][0][i],
-                    "similarity": 1 - results["distances"][0][i],
+                    "distance": float(results["distances"][0][i]),
+                    "similarity": float(1 - results["distances"][0][i]),
                     "instruction": metadata["instruction"]
                 })
         
@@ -1043,7 +1056,11 @@ class VectorDatabaseManager:
             all_oscillation_values = []
             for sid in session_ids:
                 if sid in self.oscillation_buffer:
-                    all_oscillation_values.extend(self.oscillation_buffer[sid]["values"])
+                    values = self.oscillation_buffer[sid]["values"]
+                    # NumPy配列の場合はリストに変換
+                    if isinstance(values, np.ndarray):
+                        values = values.tolist()
+                    all_oscillation_values.extend([float(v) for v in values])
             
             if all_oscillation_values:
                 try:
@@ -1074,6 +1091,13 @@ class VectorDatabaseManager:
         if not sid:
             return {"error": "No session specified"}
         
+        # 振動バッファのデータを安全に変換
+        buffer_data = self.oscillation_buffer.get(sid, {"values": [], "timestamps": []})
+        safe_buffer = {
+            "values": [float(v) for v in buffer_data["values"]],
+            "timestamps": [t.isoformat() if isinstance(t, datetime) else str(t) for t in buffer_data["timestamps"]]
+        }
+        
         export_data = {
             "session_id": sid,
             "export_time": datetime.now().isoformat(),
@@ -1084,7 +1108,7 @@ class VectorDatabaseManager:
             "emotions": [],
             "memories": [],
             "secure_entropy_logs": [],  # ハードウェアから変更
-            "oscillation_buffer": self.oscillation_buffer.get(sid, {"values": [], "timestamps": []})  # 振動バッファもエクスポート
+            "oscillation_buffer": safe_buffer  # 振動バッファもエクスポート
         }
         
         try:
@@ -1127,8 +1151,8 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = filter_metadata({
-            "id": state_id,
-            "engine_type": engine_type.value,
+            "id": str(state_id),
+            "engine_type": str(engine_type.value),
             "state_data": safe_json_dumps(state_data),
             "timestamp": entry.timestamp.isoformat(),
             "character_id": str(entry.character_id),
@@ -1160,9 +1184,9 @@ class VectorDatabaseManager:
         
         # メタデータの安全な構築
         metadata = {
-            "id": memory_id,
-            "memory_type": memory_type,
-            "relevance_score": float(relevance_score),
+            "id": str(memory_id),
+            "memory_type": str(memory_type),
+            "relevance_score": safe_metadata_value(relevance_score, 0.5),
             "timestamp": datetime.now().isoformat(),
             "access_count": 0,
             "associated_engines": safe_json_dumps(associated_engines or []),
@@ -1174,7 +1198,7 @@ class VectorDatabaseManager:
         if emotional_context is not None:
             metadata["emotional_context"] = safe_json_dumps(emotional_context)
         
-        # None値のフィルタリング
+        # フィルタリングを適用
         metadata = filter_metadata(metadata)
         
         self.collections[DataType.MEMORY].add(
@@ -1227,3 +1251,4 @@ class VectorDatabaseManager:
         self.doc_manager.clear_cache()
         
         logger.info("Database reset completed. Backups saved to ./session_backups/")
+        
