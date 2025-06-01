@@ -39,7 +39,8 @@ class OscillationBuffer:
         if timestamp is None:
             timestamp = datetime.now()
         
-        self.values.append(value)
+        # 確実にfloat型に変換
+        self.values.append(float(value))
         self.timestamps.append(timestamp)
         
         # キャッシュを無効化
@@ -60,7 +61,8 @@ class OscillationBuffer:
             raise ValueError("Values and timestamps must have the same length")
         
         for value, timestamp in zip(values, timestamps):
-            self.values.append(value)
+            # 確実にfloat型に変換
+            self.values.append(float(value))
             self.timestamps.append(timestamp)
         
         # キャッシュを無効化
@@ -68,7 +70,8 @@ class OscillationBuffer:
     
     def get_values(self) -> List[float]:
         """すべての値を取得"""
-        return list(self.values)
+        # float型のリストとして返す
+        return [float(v) for v in self.values]
     
     def get_timestamps(self) -> List[datetime]:
         """すべてのタイムスタンプを取得"""
@@ -85,8 +88,9 @@ class OscillationBuffer:
             最近の値のリスト
         """
         if count >= len(self.values):
-            return list(self.values)
-        return list(self.values)[-count:]
+            return self.get_values()
+        # float型のリストとして返す
+        return [float(v) for v in list(self.values)[-count:]]
     
     def get_recent_with_timestamps(self, count: int) -> List[Tuple[datetime, float]]:
         """
@@ -152,8 +156,9 @@ class OscillationBuffer:
         import numpy as np
         values_array = np.array(self.values)
         
+        # NumPy型を明示的にPython標準型に変換
         stats = {
-            "count": len(values_array),
+            "count": int(len(values_array)),
             "mean": float(np.mean(values_array)),
             "std": float(np.std(values_array)),
             "min": float(np.min(values_array)),
@@ -215,7 +220,8 @@ class OscillationBuffer:
         
         # 線形補間
         resampled = np.interp(indices, range(current_size), values_array)
-        return resampled.tolist()
+        # NumPy配列をfloatのリストに変換
+        return [float(v) for v in resampled]
     
     def get_derivative(self) -> List[float]:
         """
@@ -231,7 +237,8 @@ class OscillationBuffer:
         for i in range(1, len(self.values)):
             time_delta = (self.timestamps[i] - self.timestamps[i-1]).total_seconds()
             if time_delta > 0:
-                derivative = (self.values[i] - self.values[i-1]) / time_delta
+                # 微分値をfloatとして計算
+                derivative = float((self.values[i] - self.values[i-1]) / time_delta)
             else:
                 derivative = 0.0
             derivatives.append(derivative)
@@ -241,7 +248,7 @@ class OscillationBuffer:
     def to_dict(self) -> Dict[str, Any]:
         """辞書形式に変換"""
         return {
-            "values": self.get_values(),
+            "values": self.get_values(),  # float型のリストとして返す
             "timestamps": [ts.isoformat() for ts in self.timestamps],
             "max_size": self.max_size,
             "statistics": self.get_statistics()
@@ -263,5 +270,7 @@ class OscillationBuffer:
             else:
                 datetime_timestamps.append(ts)
         
-        buffer.add_multiple(values, datetime_timestamps)
+        # 値をfloat型に変換して追加
+        float_values = [float(v) for v in values]
+        buffer.add_multiple(float_values, datetime_timestamps)
         return buffer
