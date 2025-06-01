@@ -21,3 +21,6 @@
 
 # Configuration module
 -r config/requirements.txt
+
+# Monitor server
+-r monitor/requirements.txt
