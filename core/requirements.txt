@@ -7,6 +7,9 @@ chromadb==0.4.22
 # Embeddings
 sentence-transformers==2.2.2
 
+# Hugging Face model hub access
+hf_xet # For efficient model transfer
+
 # Data handling
 numpy==1.24.3
 
