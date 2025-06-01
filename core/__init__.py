@@ -8,6 +8,7 @@ from .exceptions import (
     SessionError,
     DocumentError,
     ValidationError,
+    CharacterNotFoundError,  # 追加
 )
 from .models import (
     DataType,
@@ -23,12 +24,18 @@ from .models import (
     SecureEntropyEntry,
 )
 from .utils import (
-    DateTimeEncoder,
+    EnhancedJSONEncoder,  # DateTimeEncoder から変更
     safe_json_dumps,
     safe_json_loads,
     filter_metadata,
     safe_metadata_value,
     datetime_hook,
+    truncate_text,  # 追加
+    merge_dicts,  # 追加
+    get_nested_value,  # 追加
+    set_nested_value,  # 追加
+    format_timestamp,  # 追加
+    clean_for_json,  # 追加
 )
 
 __all__ = [
@@ -57,7 +64,7 @@ __all__ = [
     "SecureEntropyEntry",
     
     # Utils
-    "DateTimeEncoder",
+    "EnhancedJSONEncoder",
     "safe_json_dumps",
     "safe_json_loads",
     "filter_metadata",
