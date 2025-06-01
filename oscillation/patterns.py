@@ -49,6 +49,10 @@ class OscillationPatternData:
         data['lyapunov_exponent'] = float(self.lyapunov_exponent)
         data['attractor_strength'] = float(self.attractor_strength)
         data['secure_entropy_intensity'] = float(self.secure_entropy_intensity)
+        data['pink_noise_enabled'] = bool(self.pink_noise_enabled)
+        data['chaotic_enabled'] = bool(self.chaotic_enabled)
+        data['secure_entropy_enabled'] = bool(self.secure_entropy_enabled)
+        data['damping_type'] = str(self.damping_type)
         return data
     
     @classmethod
