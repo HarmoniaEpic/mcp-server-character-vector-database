@@ -34,6 +34,21 @@ class OscillationPatternData:
         """辞書形式に変換（datetime を ISO 文字列に変換）"""
         data = asdict(self)
         data['timestamp'] = self.timestamp.isoformat()
+        # historyの値を確実にfloatに変換
+        data['history'] = [float(v) for v in self.history]
+        # 数値フィールドを確実に標準型に変換
+        data['amplitude'] = float(self.amplitude)
+        data['frequency'] = float(self.frequency)
+        data['phase'] = float(self.phase)
+        data['pink_noise_intensity'] = float(self.pink_noise_intensity)
+        data['spectral_slope'] = float(self.spectral_slope)
+        data['damping_coefficient'] = float(self.damping_coefficient)
+        data['natural_frequency'] = float(self.natural_frequency)
+        data['current_velocity'] = float(self.current_velocity)
+        data['target_value'] = float(self.target_value)
+        data['lyapunov_exponent'] = float(self.lyapunov_exponent)
+        data['attractor_strength'] = float(self.attractor_strength)
+        data['secure_entropy_intensity'] = float(self.secure_entropy_intensity)
         return data
     
     @classmethod
@@ -44,17 +59,25 @@ class OscillationPatternData:
                 data['timestamp'] = datetime.fromisoformat(data['timestamp'])
             except ValueError:
                 data['timestamp'] = datetime.now()
+        # historyの値を確実にfloatに変換
+        if 'history' in data and isinstance(data['history'], list):
+            data['history'] = [float(v) for v in data['history']]
         return cls(**data)
     
     def add_to_history(self, value: float, max_history: int = 1000):
         """履歴に値を追加"""
-        self.history.append(value)
+        # 値を確実にfloatに変換
+        self.history.append(float(value))
+        # 履歴サイズ制限
         if len(self.history) > max_history:
             self.history = self.history[-max_history:]
     
     def get_recent_history(self, count: int = 10) -> List[float]:
         """最近の履歴を取得"""
-        return self.history[-count:] if self.history else []
+        if not self.history:
+            return []
+        # float型のリストとして返す
+        return [float(v) for v in self.history[-count:]]
     
     def calculate_stability(self) -> float:
         """安定性を計算"""
@@ -62,15 +85,19 @@ class OscillationPatternData:
             return 1.0
         
         import numpy as np
-        variance = np.var(self.history)
-        return 1.0 / (1.0 + variance * 10.0)
+        # NumPy配列に変換して計算
+        history_array = np.array(self.history)
+        variance = float(np.var(history_array))
+        # 安定性をfloatとして返す
+        return float(1.0 / (1.0 + variance * 10.0))
     
     def calculate_average_amplitude(self) -> float:
         """平均振幅を計算"""
         if not self.history:
-            return self.amplitude
+            return float(self.amplitude)
         
         import numpy as np
+        # 平均振幅をfloatとして返す
         return float(np.mean(np.abs(self.history)))
     
     def is_converging(self, threshold: float = 0.01) -> bool:
@@ -80,66 +107,77 @@ class OscillationPatternData:
         
         recent = self.history[-10:]
         import numpy as np
-        return np.std(recent) < threshold
+        # 標準偏差をfloatとして計算
+        std = float(np.std(recent))
+        return std < threshold
     
     def get_phase_shift(self) -> float:
         """位相シフトを取得"""
-        return self.phase % (2 * 3.14159265359)  # 2π
+        # floatとして返す
+        return float(self.phase % (2 * 3.14159265359))  # 2π
     
     def update_velocity(self, new_position: float, time_delta: float):
         """速度を更新"""
         if self.history and time_delta > 0:
-            old_position = self.history[-1]
-            self.current_velocity = (new_position - old_position) / time_delta
+            old_position = float(self.history[-1])
+            # 速度をfloatとして計算
+            self.current_velocity = float((float(new_position) - old_position) / float(time_delta))
     
     def apply_damping(self) -> float:
         """減衰を適用"""
         if self.damping_type == "underdamped":
-            damping_factor = 1.0 - self.damping_coefficient * 0.1
+            damping_factor = float(1.0 - self.damping_coefficient * 0.1)
         elif self.damping_type == "critically_damped":
-            damping_factor = 1.0 - self.damping_coefficient * 0.5
+            damping_factor = float(1.0 - self.damping_coefficient * 0.5)
         elif self.damping_type == "overdamped":
-            damping_factor = 1.0 - self.damping_coefficient * 0.8
+            damping_factor = float(1.0 - self.damping_coefficient * 0.8)
         else:
             damping_factor = 1.0
         
-        return max(0.0, min(1.0, damping_factor))
+        # 範囲内に収めてfloatとして返す
+        return float(max(0.0, min(1.0, damping_factor)))
     
     def get_energy(self) -> float:
         """システムのエネルギーを計算"""
-        kinetic = 0.5 * (self.current_velocity ** 2)
+        # 運動エネルギー
+        kinetic = float(0.5 * (float(self.current_velocity) ** 2))
+        # ポテンシャルエネルギー
         if self.history:
-            potential = 0.5 * (self.history[-1] ** 2)
+            potential = float(0.5 * (float(self.history[-1]) ** 2))
         else:
             potential = 0.0
-        return kinetic + potential
+        # 合計エネルギーをfloatとして返す
+        return float(kinetic + potential)
     
     def get_entropy_contribution(self) -> float:
         """エントロピー寄与度を取得"""
         if self.secure_entropy_enabled:
-            return self.secure_entropy_intensity
+            return float(self.secure_entropy_intensity)
         return 0.0
     
     def clone(self) -> 'OscillationPatternData':
         """パターンのクローンを作成"""
+        # historyのコピーも確実にfloat型で作成
+        history_copy = [float(v) for v in self.history]
+        
         return OscillationPatternData(
-            amplitude=self.amplitude,
-            frequency=self.frequency,
-            phase=self.phase,
+            amplitude=float(self.amplitude),
+            frequency=float(self.frequency),
+            phase=float(self.phase),
             pink_noise_enabled=self.pink_noise_enabled,
-            pink_noise_intensity=self.pink_noise_intensity,
-            spectral_slope=self.spectral_slope,
-            damping_coefficient=self.damping_coefficient,
+            pink_noise_intensity=float(self.pink_noise_intensity),
+            spectral_slope=float(self.spectral_slope),
+            damping_coefficient=float(self.damping_coefficient),
             damping_type=self.damping_type,
-            natural_frequency=self.natural_frequency,
-            current_velocity=self.current_velocity,
-            target_value=self.target_value,
+            natural_frequency=float(self.natural_frequency),
+            current_velocity=float(self.current_velocity),
+            target_value=float(self.target_value),
             chaotic_enabled=self.chaotic_enabled,
-            lyapunov_exponent=self.lyapunov_exponent,
-            attractor_strength=self.attractor_strength,
+            lyapunov_exponent=float(self.lyapunov_exponent),
+            attractor_strength=float(self.attractor_strength),
             secure_entropy_enabled=self.secure_entropy_enabled,
-            secure_entropy_intensity=self.secure_entropy_intensity,
+            secure_entropy_intensity=float(self.secure_entropy_intensity),
             entropy_source_info=self.entropy_source_info.copy() if self.entropy_source_info else None,
-            history=self.history.copy(),
+            history=history_copy,
             timestamp=self.timestamp
         )
