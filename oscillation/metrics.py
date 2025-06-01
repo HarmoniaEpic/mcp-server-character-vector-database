@@ -390,3 +390,4 @@ def calculate_oscillation_metrics(values: List[float], entropy_source: Optional[
         metrics["warning"] = f"Limited data ({data_count} samples) - results may be less accurate"
     
     return metrics
+    
