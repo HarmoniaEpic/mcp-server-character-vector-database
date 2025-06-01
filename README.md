@@ -272,7 +272,199 @@ LLMがエミュレーション中のAIキャラクターに対して、記憶と
 
 #### システム構成図
 
+```mermaid
+
+graph TB
+    %% スタイル定義
+    classDef apiClass fill:#f9a825,stroke:#333,stroke-width:3px
+    classDef coreClass fill:#4fc3f7,stroke:#333,stroke-width:3px
+    classDef securityClass fill:#ef5350,stroke:#333,stroke-width:3px
+    classDef storageClass fill:#66bb6a,stroke:#333,stroke-width:3px
+    classDef analysisClass fill:#ab47bc,stroke:#333,stroke-width:3px
+    classDef docClass fill:#ffb74d,stroke:#333,stroke-width:3px
+
+    %% API層
+    subgraph API["MCP API層"]
+        MCPServer[MCP Server<br/>vector-database-server-v31]
+        Tools[Tool Definitions<br/>20+ Tools]
+        Handlers[Tool Handlers]
+    end
+
+    %% コア層
+    subgraph Core["コア層"]
+        VDB[Vector Database Manager<br/>ChromaDB統合]
+        Models[Data Models<br/>19 DataTypes]
+        Utils[Utilities<br/>JSON/Metadata処理]
+    end
+
+    %% セキュリティ層
+    subgraph Security["セキュリティ層"]
+        Entropy[Secure Entropy Source<br/>多重エントロピー源]
+        PinkNoise[Pink Noise Generator<br/>1/fゆらぎ生成]
+        Validators[Security Validators<br/>パス検証/UUID検証]
+    end
+
+    %% ストレージ層
+    subgraph Storage["ストレージ層"]
+        ChromaDB[(ChromaDB<br/>ベクトルDB)]
+        SessionStore[Session Storage<br/>JSONファイル]
+        DocStore[Document Storage<br/>テキストファイル]
+    end
+
+    %% 分析層
+    subgraph Analysis["分析層"]
+        OscBuffer[Oscillation Buffer<br/>振動履歴管理]
+        Metrics[Metrics Calculator<br/>統計/スペクトル解析]
+        Evolution[Evolution Analyzer<br/>時系列分析]
+    end
+
+    %% ドキュメント層
+    subgraph Documents["ドキュメント層"]
+        DocManager[Document Manager]
+        DocSearcher[Document Searcher]
+        DocCache[Document Cache]
+    end
+
+    %% 接続
+    MCPServer --> Tools
+    Tools --> Handlers
+    Handlers --> VDB
+
+    VDB --> Models
+    VDB --> Utils
+    VDB --> ChromaDB
+    VDB --> Entropy
+    VDB --> PinkNoise
+    VDB --> SessionStore
+    VDB --> DocManager
+    VDB --> OscBuffer
+
+    SessionStore --> Validators
+    DocManager --> DocStore
+    DocManager --> DocSearcher
+    DocSearcher --> DocCache
+
+    OscBuffer --> Metrics
+    Metrics --> Evolution
+
+    Entropy --> PinkNoise
+
+    %% スタイル適用
+    class MCPServer,Tools,Handlers apiClass
+    class VDB,Models,Utils coreClass
+    class Entropy,PinkNoise,Validators securityClass
+    class ChromaDB,SessionStore,DocStore storageClass
+    class OscBuffer,Metrics,Evolution analysisClass
+    class DocManager,DocSearcher,DocCache docClass
+
+```
+
 #### 状態遷移図
+
+```mermaid
+
+stateDiagram-v2
+    %% 初期状態
+    [*] --> Initialization: システム起動
+
+    %% 初期化フェーズ
+    state Initialization {
+        LoadConfig: 設定読み込み
+        InitEntropy: エントロピー源初期化
+        InitDB: データベース初期化
+        InitDocs: ドキュメント初期化
+        
+        LoadConfig --> InitEntropy
+        InitEntropy --> InitDB
+        InitDB --> InitDocs
+    }
+
+    %% 待機状態
+    Initialization --> Ready: 初期化完了
+
+    %% キャラクター管理
+    Ready --> CharacterCreation: add_character_profile
+    CharacterCreation --> SessionAutoStart: プロファイル作成完了
+    SessionAutoStart --> ActiveSession: セッション自動開始
+
+    %% セッション管理
+    Ready --> SessionStart: start_session
+    SessionStart --> ActiveSession: セッション開始完了
+
+    Ready --> SessionResume: resume_session
+    SessionResume --> BufferRestore: セッション復元
+    BufferRestore --> ActiveSession: 振動バッファ復元完了
+
+    %% アクティブセッション状態
+    state ActiveSession {
+        %% 会話処理
+        WaitingInput: 入力待機
+        ProcessConversation: 会話処理
+        UpdateOscillation: 振動更新
+        
+        WaitingInput --> ProcessConversation: add_conversation
+        ProcessConversation --> UpdateOscillation: 会話追加完了
+        UpdateOscillation --> WaitingInput: 振動値記録
+
+        %% 状態更新
+        UpdateInternalState: 内部状態更新
+        UpdateRelationship: 関係性更新
+        UpdateEngineState: エンジン状態更新
+        
+        WaitingInput --> UpdateInternalState: add_internal_state
+        WaitingInput --> UpdateRelationship: add_relationship_state
+        WaitingInput --> UpdateEngineState: add_engine_state
+        
+        UpdateInternalState --> WaitingInput
+        UpdateRelationship --> WaitingInput
+        UpdateEngineState --> WaitingInput
+    }
+
+    %% メトリクス計算
+    ActiveSession --> MetricsCalculation: calculate_oscillation_metrics
+    state MetricsCalculation {
+        CheckDataLevel: データレベル確認
+        SupplementData: データ補充
+        CalculateMetrics: メトリクス計算
+        
+        CheckDataLevel --> SupplementData: データ不足
+        CheckDataLevel --> CalculateMetrics: データ十分
+        SupplementData --> CalculateMetrics
+    }
+    MetricsCalculation --> ActiveSession: 計算完了
+
+    %% セッション終了
+    ActiveSession --> SessionExport: export_session_data
+    SessionExport --> Ready: エクスポート完了
+
+    ActiveSession --> SessionDeactivate: セッション非アクティブ化
+    SessionDeactivate --> Ready: 非アクティブ化完了
+
+    %% システムリセット
+    Ready --> DatabaseReset: reset_database
+    DatabaseReset --> BackupCreation: バックアップ作成
+    BackupCreation --> Initialization: リセット完了
+
+    %% 終了
+    Ready --> [*]: システム終了
+
+    %% 注釈
+    note right of ActiveSession
+        振動バッファ管理：
+        - 最小5サンプル保持
+        - セキュアエントロピー生成
+        - セッション間で永続化
+    end note
+
+    note right of MetricsCalculation
+        データレベル：
+        - insufficient: < 3
+        - basic: 3-4
+        - intermediate: 5-9
+        - full: 10+
+    end note
+
+```
 
 ### Unified Inner Engine System (pseudocode)
 
