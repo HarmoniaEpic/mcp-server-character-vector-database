@@ -3,26 +3,60 @@ Utility functions for Vector Database MCP Server
 """
 
 import json
+import numpy as np
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, List
+from decimal import Decimal
 
 
 # ========================================================
 # JSON Serialization with datetime support
 # ========================================================
 
-class DateTimeEncoder(json.JSONEncoder):
-    """datetime オブジェクトを自動的に ISO 文字列に変換する JSON エンコーダー"""
+class EnhancedJSONEncoder(json.JSONEncoder):
+    """拡張JSONエンコーダー - NumPy型とdatetime対応"""
     
     def default(self, obj):
+        # datetime処理
         if isinstance(obj, datetime):
             return obj.isoformat()
-        return super().default(obj)
+        
+        # NumPy配列処理
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        
+        # NumPy数値型処理
+        if isinstance(obj, (np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+            return int(obj)
+        
+        if isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        
+        if isinstance(obj, (np.bool_, np.bool8)):
+            return bool(obj)
+        
+        # Decimal処理
+        if isinstance(obj, Decimal):
+            return float(obj)
+        
+        # セット処理
+        if isinstance(obj, set):
+            return list(obj)
+        
+        # バイト処理
+        if isinstance(obj, bytes):
+            return obj.decode('utf-8', errors='ignore')
+        
+        # その他のオブジェクトは文字列化
+        try:
+            return str(obj)
+        except:
+            return super().default(obj)
 
 
 def safe_json_dumps(obj: Any, **kwargs) -> str:
     """
-    datetime 対応の安全な JSON シリアライゼーション
+    安全なJSON シリアライゼーション（NumPy対応版）
     
     Args:
         obj: JSON化するオブジェクト
@@ -31,7 +65,74 @@ def safe_json_dumps(obj: Any, **kwargs) -> str:
     Returns:
         JSON文字列
     """
-    return json.dumps(obj, cls=DateTimeEncoder, **kwargs)
+    # デフォルトでEnhancedJSONEncoderを使用
+    if 'cls' not in kwargs:
+        kwargs['cls'] = EnhancedJSONEncoder
+    
+    # 循環参照対策
+    if 'check_circular' not in kwargs:
+        kwargs['check_circular'] = True
+    
+    try:
+        return json.dumps(obj, **kwargs)
+    except Exception as e:
+        # フォールバック：基本的な型のみを含むデータに変換
+        cleaned_obj = clean_for_json(obj)
+        return json.dumps(cleaned_obj, cls=EnhancedJSONEncoder, **kwargs)
+
+
+def clean_for_json(obj: Any, max_depth: int = 10, current_depth: int = 0) -> Any:
+    """
+    JSONシリアライズ可能な形式にクリーニング
+    
+    Args:
+        obj: クリーニングするオブジェクト
+        max_depth: 最大再帰深度
+        current_depth: 現在の再帰深度
+        
+    Returns:
+        クリーニングされたオブジェクト
+    """
+    if current_depth > max_depth:
+        return None
+    
+    # 基本型はそのまま
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    
+    # NumPy型の変換
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    
+    if isinstance(obj, (np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+        return int(obj)
+    
+    if isinstance(obj, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+        return float(obj)
+    
+    if isinstance(obj, (np.bool_, np.bool8)):
+        return bool(obj)
+    
+    # datetime
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    
+    # リスト・タプル
+    if isinstance(obj, (list, tuple)):
+        return [clean_for_json(item, max_depth, current_depth + 1) for item in obj]
+    
+    # 辞書
+    if isinstance(obj, dict):
+        return {
+            str(k): clean_for_json(v, max_depth, current_depth + 1) 
+            for k, v in obj.items()
+        }
+    
+    # その他は文字列化
+    try:
+        return str(obj)
+    except:
+        return None
 
 
 def datetime_hook(obj: Dict[str, Any]) -> Dict[str, Any]:
@@ -81,7 +182,7 @@ def safe_json_loads(s: str, **kwargs) -> Any:
 
 def filter_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
     """
-    ChromaDB用にメタデータからNone値を除外し、型を適切に変換
+    ChromaDB用にメタデータを厳密にフィルタリング
     
     Args:
         metadata: 元のメタデータ
@@ -90,22 +191,28 @@ def filter_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
         フィルタリング済みメタデータ
     """
     filtered = {}
+    
     for key, value in metadata.items():
-        if value is not None:
-            # 型の明示的変換
-            if isinstance(value, (int, float, bool)):
-                filtered[key] = value
-            elif isinstance(value, str):
-                filtered[key] = value
-            else:
-                # その他の型は文字列に変換
-                filtered[key] = str(value)
+        # キーを文字列に変換
+        key = str(key)
+        
+        # None値は除外
+        if value is None:
+            continue
+        
+        # 値の型を適切に変換
+        filtered_value = safe_metadata_value(value)
+        
+        # 変換後もNoneでなければ追加
+        if filtered_value is not None:
+            filtered[key] = filtered_value
+    
     return filtered
 
 
-def safe_metadata_value(value: Any, default_value: Any = "") -> Any:
+def safe_metadata_value(value: Any, default_value: Any = None) -> Any:
     """
-    ChromaDB用の安全なメタデータ値変換
+    ChromaDB用の安全なメタデータ値変換（拡張版）
     
     Args:
         value: 変換する値
@@ -117,14 +224,50 @@ def safe_metadata_value(value: Any, default_value: Any = "") -> Any:
     if value is None:
         return default_value
     
-    if isinstance(value, bool):
-        return value
-    elif isinstance(value, (int, float)):
-        return value
-    elif isinstance(value, str):
-        return value
-    else:
+    # ブール値
+    if isinstance(value, (bool, np.bool_, np.bool8)):
+        return bool(value)
+    
+    # 整数（NumPy整数型含む）
+    if isinstance(value, (int, np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+        return int(value)
+    
+    # 浮動小数点数（NumPy浮動小数点型含む）
+    if isinstance(value, (float, np.floating, np.float_, np.float16, np.float32, np.float64)):
+        val = float(value)
+        # NaN や Inf のチェック
+        if np.isnan(val) or np.isinf(val):
+            return 0.0
+        return val
+    
+    # 文字列
+    if isinstance(value, str):
+        # 空文字列を避ける
+        return value if value else default_value
+    
+    # リストやタプル -> JSON文字列に変換
+    if isinstance(value, (list, tuple, np.ndarray)):
+        try:
+            return safe_json_dumps(value)
+        except:
+            return str(value)
+    
+    # 辞書 -> JSON文字列に変換
+    if isinstance(value, dict):
+        try:
+            return safe_json_dumps(value)
+        except:
+            return str(value)
+    
+    # datetime -> ISO文字列
+    if isinstance(value, datetime):
+        return value.isoformat()
+    
+    # その他の型は文字列に変換
+    try:
         return str(value)
+    except:
+        return default_value
 
 
 # ========================================================
