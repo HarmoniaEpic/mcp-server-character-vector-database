@@ -1,0 +1,5 @@
+# Monitor module dependencies
+gradio>=4.19.0
+plotly>=5.18.0
+pandas>=2.0.0
+kaleido>=0.2.1  # For plotly static image export
