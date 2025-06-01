@@ -255,7 +255,7 @@ mypy .
   
 
 6. **エアーマンが倒せない**
-   - [All You Need Is Kill](https://dash.shueisha.co.jp/feature/allyou/) ※ 祝！アニメ映画化
+   - [All You Need Is Kill](https://dash.shueisha.co.jp/feature/allyou/) ※ 祝！アニメ映画化🎉
 
 ## ライセンス
 
