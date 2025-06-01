@@ -10,7 +10,20 @@ from config.logging import get_logger
 logger = get_logger(__name__)
 
 
-def calculate_basic_metrics(values: List[float]) -> Dict[str, float]:
+def _ensure_python_types(value: Any) -> Any:
+    """NumPy型をPython標準型に変換"""
+    if isinstance(value, (np.integer, np.int_, np.int8, np.int16, np.int32, np.int64)):
+        return int(value)
+    elif isinstance(value, (np.floating, np.float_, np.float16, np.float32, np.float64)):
+        return float(value)
+    elif isinstance(value, (np.bool_, np.bool8)):
+        return bool(value)
+    elif isinstance(value, np.ndarray):
+        return value.tolist()
+    return value
+
+
+def calculate_basic_metrics(values: List[float]) -> Dict[str, Any]:
     """
     基本的な統計メトリクスを計算
     
@@ -33,7 +46,7 @@ def calculate_basic_metrics(values: List[float]) -> Dict[str, float]:
     
     values_array = np.array(values)
     
-    # NumPy型を明示的にPython標準型に変換
+    # 全ての値を明示的にPython標準型に変換
     return {
         "mean": float(np.mean(values_array)),
         "std": float(np.std(values_array)),
@@ -41,7 +54,7 @@ def calculate_basic_metrics(values: List[float]) -> Dict[str, float]:
         "min": float(np.min(values_array)),
         "max": float(np.max(values_array)),
         "range": float(np.max(values_array) - np.min(values_array)),
-        "count": int(len(values_array))  # intに変換
+        "count": int(len(values_array))
     }
 
 
@@ -389,5 +402,8 @@ def calculate_oscillation_metrics(values: List[float], entropy_source: Optional[
     if data_level in ["basic", "intermediate"]:
         metrics["warning"] = f"Limited data ({data_count} samples) - results may be less accurate"
     
-    return metrics
+    # 最終的な型チェック
+    for key, value in metrics.items():
+        metrics[key] = _ensure_python_types(value)
     
+    return metrics
