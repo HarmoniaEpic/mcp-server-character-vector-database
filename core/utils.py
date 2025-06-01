@@ -44,8 +44,8 @@ def convert_numpy_types(obj: Any) -> Any:
 # JSON Serialization with datetime support
 # ========================================================
 
-class DateTimeEncoder(json.JSONEncoder):
-    """シンプルなdatetime対応エンコーダー"""
+class EnhancedJSONEncoder(json.JSONEncoder):
+    """拡張JSONエンコーダー（datetime・NumPy型対応）"""
     
     def default(self, obj):
         # datetime処理
@@ -94,9 +94,9 @@ def safe_json_dumps(obj: Any, **kwargs) -> str:
     if 'ensure_ascii' not in kwargs:
         kwargs['ensure_ascii'] = False
     
-    # デフォルトでDateTimeEncoderを使用
+    # デフォルトでEnhancedJSONEncoderを使用
     if 'cls' not in kwargs:
-        kwargs['cls'] = DateTimeEncoder
+        kwargs['cls'] = EnhancedJSONEncoder
     
     # 循環参照対策
     if 'check_circular' not in kwargs:
@@ -109,7 +109,7 @@ def safe_json_dumps(obj: Any, **kwargs) -> str:
     except Exception as e:
         # フォールバック：基本的な型のみを含むデータに変換
         cleaned_obj = clean_for_json(obj)
-        return json.dumps(cleaned_obj, cls=DateTimeEncoder, **kwargs)
+        return json.dumps(cleaned_obj, cls=EnhancedJSONEncoder, **kwargs)
 
 
 def clean_for_json(obj: Any, max_depth: int = 10, current_depth: int = 0) -> Any:
