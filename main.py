@@ -5,6 +5,7 @@ Vector Database MCP Server - Main Entry Point
 import sys
 import asyncio
 import logging
+import multiprocessing
 from pathlib import Path
 
 # Add the project directory to Python path
@@ -22,6 +23,39 @@ from core.utils import filter_metadata
 
 # Setup logging
 logger = setup_logging()
+
+
+def run_monitor_server():
+    """Run monitor server in a separate process"""
+    try:
+        # Import here to avoid issues with multiprocessing
+        from monitor.gradio_app import MonitorApp
+        from core.database import VectorDatabaseManager
+        from config.logging import setup_logging
+        
+        # Setup logging for monitor process
+        monitor_logger = setup_logging(name="monitor")
+        monitor_logger.info("Starting MCP Server Monitor...")
+        
+        # Initialize database manager
+        db_manager = VectorDatabaseManager()
+        
+        # Create monitor app
+        app = MonitorApp(db_manager)
+        
+        # Launch
+        app.launch(
+            server_name="0.0.0.0",
+            server_port=7860,
+            share=False,
+            inbrowser=False,  # Don't auto-open browser
+            favicon_path=None,
+            quiet=True  # Reduce Gradio output
+        )
+    except Exception as e:
+        print(f"Monitor server error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def run_test_mode():
@@ -170,15 +204,53 @@ def run_test_mode():
     print(f"- Reduced minimum data requirements")
 
 
+async def run_mcp_server():
+    """Run MCP server"""
+    server = VectorDatabaseMCPServer()
+    await server.run()
+
+
 def main():
     """Main entry point"""
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         run_test_mode()
     else:
-        # Run MCP server
-        server = VectorDatabaseMCPServer()
-        asyncio.run(server.run())
+        # Start monitor server in a separate process
+        monitor_process = None
+        try:
+            logger.info("Starting monitor server process...")
+            monitor_process = multiprocessing.Process(
+                target=run_monitor_server,
+                daemon=True  # Make it a daemon process
+            )
+            monitor_process.start()
+            logger.info(f"Monitor server started on http://localhost:7860")
+            
+            # Give monitor server time to start
+            import time
+            time.sleep(2)
+            
+            # Run MCP server in main process
+            logger.info("Starting MCP server...")
+            asyncio.run(run_mcp_server())
+            
+        except KeyboardInterrupt:
+            logger.info("Shutting down...")
+        except Exception as e:
+            logger.error(f"Error in main: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Clean up monitor process
+            if monitor_process and monitor_process.is_alive():
+                logger.info("Terminating monitor server...")
+                monitor_process.terminate()
+                monitor_process.join(timeout=5)
+                if monitor_process.is_alive():
+                    monitor_process.kill()
 
 
 if __name__ == "__main__":
+    # Required for multiprocessing on Windows
+    multiprocessing.freeze_support()
     main()
