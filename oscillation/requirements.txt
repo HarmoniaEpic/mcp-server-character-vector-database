@@ -2,7 +2,7 @@
 # Oscillation analysis dependencies
 
 # Scientific computing
-scipy==1.11.4
+scipy
 # pandas==2.1.4  # Optional, for advanced data analysis
 
 # Signal processing
