@@ -194,7 +194,7 @@ class OscillationBuffer:
         """
         time_range = self.get_time_range()
         if time_range:
-            return (time_range[1] - time_range[0]).total_seconds()
+            return float((time_range[1] - time_range[0]).total_seconds())
         return 0.0
     
     def resample(self, target_size: int) -> List[float]:
@@ -238,7 +238,7 @@ class OscillationBuffer:
             time_delta = (self.timestamps[i] - self.timestamps[i-1]).total_seconds()
             if time_delta > 0:
                 # 微分値をfloatとして計算
-                derivative = float((self.values[i] - self.values[i-1]) / time_delta)
+                derivative = float((float(self.values[i]) - float(self.values[i-1])) / time_delta)
             else:
                 derivative = 0.0
             derivatives.append(derivative)
