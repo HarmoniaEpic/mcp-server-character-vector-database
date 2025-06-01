@@ -6,6 +6,10 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
 
+## 狂人の真似とて大路を走らば即ち狂人なり
+
+真面目な README はこちら。
+
 ## ポエム（本当にポエムを書くやつがあるかバカモン）
 
 心の在処は人の間に。AI人間、いずれ間が抜け人となる。序論本論結果論、さよならさんかくまる描いてフォイ、運命論はまた来てしかく。
