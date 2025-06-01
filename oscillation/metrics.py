@@ -33,6 +33,7 @@ def calculate_basic_metrics(values: List[float]) -> Dict[str, float]:
     
     values_array = np.array(values)
     
+    # NumPy型を明示的にPython標準型に変換
     return {
         "mean": float(np.mean(values_array)),
         "std": float(np.std(values_array)),
@@ -40,7 +41,7 @@ def calculate_basic_metrics(values: List[float]) -> Dict[str, float]:
         "min": float(np.min(values_array)),
         "max": float(np.max(values_array)),
         "range": float(np.max(values_array) - np.min(values_array)),
-        "count": len(values_array)
+        "count": int(len(values_array))  # intに変換
     }
 
 
@@ -75,6 +76,7 @@ def calculate_stability_metrics(values: List[float]) -> Dict[str, float]:
     x = np.arange(len(values_array))
     slope, _ = np.polyfit(x, values_array, 1)
     
+    # 全ての値を明示的にfloatに変換
     return {
         "stability": float(stability),
         "volatility": float(volatility),
@@ -106,13 +108,17 @@ def calculate_autocorrelation(values: List[float], max_lag: int = 10) -> Dict[st
     for lag in range(1, min(max_lag + 1, len(values) // 2)):
         if lag < len(values):
             corr = np.corrcoef(values_array[:-lag], values_array[lag:])[0, 1]
-            autocorrelations.append(float(corr))
+            # NaNチェックとfloat変換
+            if np.isnan(corr):
+                autocorrelations.append(0.0)
+            else:
+                autocorrelations.append(float(corr))
     
     first_order = autocorrelations[0] if autocorrelations else 0.0
     randomness_score = 1.0 - abs(first_order)
     
     return {
-        "autocorrelations": autocorrelations,
+        "autocorrelations": autocorrelations,  # 既にfloatのリスト
         "first_order": float(first_order),
         "randomness_score": float(randomness_score)
     }
@@ -156,14 +162,15 @@ def calculate_spectral_analysis(values: List[float]) -> Dict[str, Any]:
             
             # 周波数分布（上位5つ）
             top_indices = np.argsort(positive_power)[-5:][::-1]
-            frequency_distribution = [
-                {
-                    "frequency": float(positive_freqs[idx]),
-                    "power": float(positive_power[idx]),
-                    "relative_power": float(positive_power[idx] / spectral_power)
-                }
-                for idx in top_indices if idx < len(positive_freqs)
-            ]
+            frequency_distribution = []
+            for idx in top_indices:
+                if idx < len(positive_freqs):
+                    freq_info = {
+                        "frequency": float(positive_freqs[idx]),
+                        "power": float(positive_power[idx]),
+                        "relative_power": float(positive_power[idx] / spectral_power) if spectral_power > 0 else 0.0
+                    }
+                    frequency_distribution.append(freq_info)
         else:
             dominant_frequency = 0.0
             spectral_power = 0.0
@@ -235,6 +242,7 @@ def assess_pink_noise_quality(values: List[float]) -> Dict[str, float]:
             slope_deviation = 1.0
             pink_noise_quality = 0.0
         
+        # 全ての値を明示的にfloatに変換
         return {
             "pink_noise_quality": float(pink_noise_quality),
             "spectral_slope": float(slope),
@@ -272,16 +280,20 @@ def calculate_chaos_metrics(values: List[float]) -> Dict[str, float]:
         
         # 簡易リアプノフ指数推定
         diffs = np.abs(np.diff(values_array))
-        lyapunov_estimate = float(np.mean(np.log(diffs + 1e-10)))
+        # ゼロ除算を防ぐ
+        diffs_safe = np.where(diffs > 0, diffs, 1e-10)
+        lyapunov_estimate = float(np.mean(np.log(diffs_safe)))
         
         # シャノンエントロピー
         hist, _ = np.histogram(values_array, bins=10)
         hist = hist / np.sum(hist)
-        entropy = -np.sum(hist * np.log(hist + 1e-10))
+        # ゼロ除算を防ぐ
+        hist_safe = np.where(hist > 0, hist, 1e-10)
+        entropy = float(-np.sum(hist_safe * np.log(hist_safe)))
         
         # ボックスカウント法による簡易フラクタル次元
         # （実装簡略化のため1.0-2.0の範囲に正規化）
-        std = np.std(values_array)
+        std = float(np.std(values_array))
         fractal_dimension = 1.0 + min(1.0, std)
         
         return {
@@ -310,6 +322,13 @@ def calculate_oscillation_metrics(values: List[float], entropy_source: Optional[
     Returns:
         総合メトリクス
     """
+    # 入力値の型確認と変換
+    if isinstance(values, np.ndarray):
+        values = values.tolist()
+    
+    # 各値をfloatに変換
+    values = [float(v) for v in values]
+    
     # データレベルの判定
     data_count = len(values)
     if data_count < 3:
@@ -324,7 +343,7 @@ def calculate_oscillation_metrics(values: List[float], entropy_source: Optional[
     # 基本メトリクス（常に計算）
     metrics = {
         "data_level": data_level,
-        "total_samples": data_count
+        "total_samples": int(data_count)  # intに変換
     }
     
     if data_count < 3:
@@ -362,8 +381,8 @@ def calculate_oscillation_metrics(values: List[float], entropy_source: Optional[
     # エントロピー源情報（提供されている場合）
     if entropy_source and hasattr(entropy_source, 'assess_entropy_quality'):
         entropy_quality = entropy_source.assess_entropy_quality()
-        metrics["secure_entropy_contribution"] = entropy_quality.get("success_rate", 0.0)
-        metrics["entropy_source"] = entropy_quality.get("entropy_source", "unknown")
+        metrics["secure_entropy_contribution"] = float(entropy_quality.get("success_rate", 0.0))
+        metrics["entropy_source"] = str(entropy_quality.get("entropy_source", "unknown"))
         metrics["security_level"] = "high"
     
     # 警告メッセージ
